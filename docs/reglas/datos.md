@@ -94,7 +94,16 @@ opuesto y más grave. `porFaceta` ignora la cuenca cuando el tipo es `empresa`.
 nombre real— pasa a aparecer como cinco opciones, una por cuenca. No se lo trata como caso
 especial: es lo que dice el dato, y esconderlo dejaría 513 pozos sin ese eje de búsqueda.
 
-La cuenca es un filtro **opcional** en los tres puntos donde entra (`construirFacetas`,
-`porFaceta`, `leerEstado`). Un enlace anterior a esta desambiguación, sin el parámetro `c`,
-sigue siendo válido y resuelve a la unión de todas las cuencas: el comportamiento que tenía
-antes. No hay enlaces rotos.
+La cuenca es un filtro **opcional**: un enlace anterior a esta desambiguación, sin el
+parámetro `c`, sigue siendo válido y resuelve a la unión de todas las cuencas, que es el
+comportamiento que tenía antes. No hay enlaces rotos.
+
+Qué tipo admite cuenca se define una sola vez, en `admiteCuenca` (`src/lib/esquema.js`), y lo
+consultan `construirFacetas`, `porFaceta` y las dos funciones de `url.js`. `leerEstado`
+descarta el parámetro `c` en los tipos que no lo admiten, así que todo lo que viene después
+—el nombre del archivo descargado, el texto del panel— hereda la invariante sin tener que
+conocer la excepción. Esto no es cosmético: antes la regla vivía sólo en `porFaceta`, y una
+URL escrita a mano como `?t=empresa&v=YPF+S.A.&c=AUSTRAL` devolvía correctamente los 12.093
+pozos de toda la empresa pero bajaba un archivo llamado `pozos-empresa-ypf-s-a-austral.csv`.
+El nombre mentía sobre el contenido, que en una herramienta cuyo producto es el CSV importa
+más que un error de pantalla.
