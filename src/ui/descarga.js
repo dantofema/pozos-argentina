@@ -34,11 +34,41 @@ export function crearPanelDescarga(contenedor) {
   const boton = contenedor.querySelector('.descarga__boton')
 
   return {
+    /**
+     * Ámbito con pozos: resumen + botón habilitado. El click deshabilita el
+     * botón mientras dura la descarga (así un segundo click no dispara una
+     * segunda carga de la misma cuenca) y, si `alDescargar` rechaza, lo dice
+     * en el propio resumen en vez de dejar el rechazo sin manejar.
+     */
     mostrar({ texto, alDescargar }) {
       resumen.textContent = texto
-      boton.onclick = alDescargar
+      boton.hidden = false
+      boton.disabled = false
+      boton.onclick = async () => {
+        if (boton.disabled) return
+        boton.disabled = true
+        resumen.textContent = 'Preparando el CSV…'
+        try {
+          await alDescargar()
+          resumen.textContent = texto
+        } catch (error) {
+          console.error('No se pudo generar el CSV:', error)
+          resumen.textContent = 'No se pudo generar el CSV. Probá de nuevo en unos minutos.'
+        } finally {
+          boton.disabled = false
+        }
+      }
       panel.hidden = false
     },
+
+    /** Ámbito sin pozos (p.ej. un enlace compartido a una faceta que ya no existe): sólo texto, sin botón. */
+    mostrarVacio(texto) {
+      resumen.textContent = texto
+      boton.onclick = null
+      boton.hidden = true
+      panel.hidden = false
+    },
+
     ocultar() {
       panel.hidden = true
     },
