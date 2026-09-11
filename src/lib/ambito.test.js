@@ -122,3 +122,19 @@ describe('porFaceta acotada por cuenca', () => {
     expect(porFaceta(catalogoHomonimo, 'empresa', 'YPF S.A.', 'AUSTRAL').sort()).toEqual([1, 2, 3])
   })
 })
+
+describe('porFaceta ante un artefacto cacheado incompleto', () => {
+  it('devuelve vacío en vez de lanzar cuando falta el diccionario del tipo', () => {
+    const viejo = { ...catalogo, dicts: { ...catalogo.dicts } }
+    delete viejo.dicts.sigla
+    // Es el caso real: un enlace compartido a un pozo con el lite viejo en caché.
+    expect(() => porFaceta(viejo, 'sigla', 'YPF.Nq.LC-1')).not.toThrow()
+    expect(porFaceta(viejo, 'sigla', 'YPF.Nq.LC-1')).toEqual([])
+  })
+
+  it('los tipos que sí están siguen funcionando', () => {
+    const viejo = { ...catalogo, dicts: { ...catalogo.dicts } }
+    delete viejo.dicts.sigla
+    expect(porFaceta(viejo, 'empresa', 'YPF S.A.').length).toBeGreaterThan(0)
+  })
+})

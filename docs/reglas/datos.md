@@ -34,7 +34,7 @@ propósito.
 La fecha del build es visible en el pie del sitio.
 
 **Excepción que no contradice la regla:** el mapa carga teselas de fondo desde el WMS de la
-Secretaría (`sig.energia.gob.ar`, ver `src/ui/wms.js`), un servidor distinto del DataStore y
+Secretaría (`sig.energia.gob.ar`, ver `src/ui/capas.js`), un servidor distinto del DataStore y
 sin relación con `datos.energia.gob.ar`. Son imágenes de contexto —concesiones, ductos,
 yacimientos—, nunca datos: no hay ningún cruce entre lo que el WMS pinta y lo que el sitio
 busca o descarga.

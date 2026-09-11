@@ -16,10 +16,15 @@ function capaWms(capa) {
   })
 }
 
-export function crearMapa(contenedor) {
-  // preferCanvas: con una cuenca entera (33k+ pozos) un <path> SVG por marcador
-  // traba el paneo; canvas reposiciona todo en un solo elemento.
-  const mapa = L.map(contenedor, { preferCanvas: true })
+/**
+ * @param contenedor  el div del mapa
+ * @param preferCanvas  con una cuenca entera (33k+ pozos) un <path> SVG por
+ *   marcador traba el paneo, así que por defecto se dibuja en canvas. Se puede
+ *   pedir SVG: es lo que hacen los tests, porque jsdom no tiene contexto 2D y
+ *   cualquier vector sobre canvas ahí lanza.
+ */
+export function crearMapa(contenedor, { preferCanvas = true } = {}) {
+  const mapa = L.map(contenedor, { preferCanvas })
     .setView(VISTA_INICIAL.centro, VISTA_INICIAL.zoom)
 
   L.tileLayer(ARGENMAP.url, ARGENMAP.opciones).addTo(mapa)

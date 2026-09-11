@@ -33,7 +33,13 @@ export function puntoEnPoligono(lon, lat, anillo) {
 export function porFaceta(catalogo, tipo, valor, cuenca) {
   const columna = COLUMNA_POR_TIPO[tipo]
   if (columna === undefined) throw new Error(`Tipo de faceta desconocido: ${tipo}`)
-  const indice = catalogo.dicts[tipo].indexOf(valor)
+  // Un artefacto cacheado de un build anterior puede no traer este diccionario
+  // —`sigla` es el caso concreto—, y un enlace compartido a un pozo lo pediría.
+  // Sin ámbito es mejor que una excepción que el usuario lee como "no cargó el
+  // catálogo" cuando el catálogo sí cargó.
+  const diccionario = catalogo.dicts[tipo]
+  if (!diccionario) return []
+  const indice = diccionario.indexOf(valor)
   if (indice === -1) return []
 
   const acota = cuenca != null && admiteCuenca(tipo)
