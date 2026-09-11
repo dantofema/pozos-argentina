@@ -57,4 +57,28 @@ describe('escribirEstado', () => {
     const original = { modo: 'poligono', poligono: [[-69.5, -39.25], [-68, -39], [-68, -38]] }
     expect(leerEstado(escribirEstado(original)).poligono).toEqual(original.poligono)
   })
+
+  it('estado de polígono sin poligono devuelve cadena vacía', () => {
+    expect(escribirEstado({ modo: 'poligono' })).toBe('')
+  })
+
+  it('estado de faceta sin valor devuelve cadena vacía', () => {
+    expect(escribirEstado({ modo: 'faceta', tipo: 'empresa' })).toBe('')
+  })
+
+  it('valor de faceta con + literal sobrevive la ida y vuelta', () => {
+    const original = { modo: 'faceta', tipo: 'empresa', valor: 'TECH+ENERGY' }
+    const vuelta = leerEstado(escribirEstado(original))
+    expect(vuelta.valor).toBe(original.valor)
+  })
+})
+
+describe('leerEstado - casos fronterizos', () => {
+  it('descarta t sin v', () => {
+    expect(leerEstado('?t=area').modo).toBe('vacio')
+  })
+
+  it('descarta v sin t', () => {
+    expect(leerEstado('?v=LOMA+CAMPANA').modo).toBe('vacio')
+  })
 })

@@ -32,10 +32,16 @@ export function leerEstado(busqueda) {
 
 export function escribirEstado(estado) {
   if (estado.modo === 'faceta') {
+    if (!estado.tipo || !estado.valor) {
+      return ''
+    }
     const p = new URLSearchParams({ t: estado.tipo, v: estado.valor })
     return `?${p.toString()}`
   }
   if (estado.modo === 'poligono') {
+    if (!Array.isArray(estado.poligono) || estado.poligono.length < 3) {
+      return ''
+    }
     const texto = estado.poligono.map(([lon, lat]) => `${lon},${lat}`).join(';')
     return `?p=${texto}`
   }
