@@ -19,7 +19,23 @@ export async function cargarDetalle(cuencas, base = '/') {
   for (const cuenca of cuencas) {
     const archivo = `pozos-full-${nombreArchivoCuenca(cuenca)}.json`
     if (!cache.has(archivo)) {
-      cache.set(archivo, fetch(`${base}${archivo}`).then((r) => r.json()))
+      cache.set(archivo, fetch(`${base}${archivo}`)
+        .then((r) => {
+          if (!r.ok) {
+            throw new Error(`No se pudo cargar ${archivo}: ${r.status} ${r.statusText}`)
+          }
+          return r.json()
+        })
+        .then((datos) => {
+          if (!datos || typeof datos.rows === 'undefined') {
+            throw new Error(`${archivo} no contiene un array 'rows'`)
+          }
+          return datos
+        })
+        .catch((error) => {
+          cache.delete(archivo)
+          throw error
+        }))
     }
     const datos = await cache.get(archivo)
     for (const fila of datos.rows) porId.set(fila[FULL.ID], fila)
