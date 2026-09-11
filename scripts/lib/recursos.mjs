@@ -13,6 +13,11 @@ export function candidatosDelPaquete(p, anioDesde, anioHasta) {
   return (p.resources ?? [])
     .filter((r) => r.datastore_active)
     .filter((r) => /producc/i.test(r.name ?? ''))
+    // Los "(DDJJ abiertas y cerradas)" son un conjunto distinto: incluyen
+    // declaraciones juradas todavía abiertas. Sólo en el año en curso superan
+    // en filas al recurso principal (cerradas nomás); mezclarlos rompe la
+    // comparabilidad de la serie histórica.
+    .filter((r) => !/DDJJ/i.test(r.name ?? ''))
     .map((r) => {
       const encontrado = /(20\d\d)/.exec(r.name ?? '')
       return encontrado
