@@ -14,7 +14,9 @@ function capaWms(capa) {
 }
 
 export function crearMapa(contenedor) {
-  const mapa = L.map(contenedor).setView([-38.5, -68.5], 6)
+  // preferCanvas: con una cuenca entera (33k+ pozos) un <path> SVG por marcador
+  // traba el paneo; canvas reposiciona todo en un solo elemento.
+  const mapa = L.map(contenedor, { preferCanvas: true }).setView([-38.5, -68.5], 6)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap',
@@ -28,6 +30,7 @@ export function crearMapa(contenedor) {
 
   const grupoPozos = L.layerGroup().addTo(mapa)
   let alDibujarCallback = null
+  let dibujoHabilitado = false
 
   return {
     mapa,
@@ -55,36 +58,54 @@ export function crearMapa(contenedor) {
       alDibujarCallback = callback
     },
 
-    /** Dibujo de rectángulo: shift + arrastrar. Leaflet ya lo trae para zoom; acá se reusa. */
+    /**
+     * Dibujo de rectángulo: shift + arrastrar. Leaflet ya lo trae para zoom; acá se reusa.
+     * Sólo engancha handlers una vez: llamar dos veces sería aditivo y disparía
+     * `alDibujar` por duplicado en cada gesto.
+     */
     habilitarDibujo() {
+      if (dibujoHabilitado) return
+      dibujoHabilitado = true
+
       mapa.boxZoom.disable()
       let inicio = null
       let rectangulo = null
 
-      mapa.on('mousedown', (e) => {
-        if (!e.originalEvent.shiftKey) return
-        inicio = e.latlng
-        mapa.dragging.disable()
-      })
-
-      mapa.on('mousemove', (e) => {
+      // mousemove/mouseup del arrastre se siguen sobre document (no sobre el
+      // contenedor del mapa), igual que el Draggable interno de Leaflet: si el
+      // botón se suelta fuera del mapa, el mouseup del contenedor nunca llega,
+      // `inicio` queda seteado para siempre y `dragging` no se reactiva más.
+      function alMover(e) {
         if (!inicio) return
         if (rectangulo) rectangulo.remove()
-        rectangulo = L.rectangle(L.latLngBounds(inicio, e.latlng), {
+        const actual = mapa.mouseEventToLatLng(e)
+        rectangulo = L.rectangle(L.latLngBounds(inicio, actual), {
           color: '#0369A1', weight: 1, fillOpacity: 0.08,
         }).addTo(mapa)
-      })
+      }
 
-      mapa.on('mouseup', (e) => {
+      function alSoltar(e) {
         if (!inicio) return
-        const limites = L.latLngBounds(inicio, e.latlng)
+        const actual = mapa.mouseEventToLatLng(e)
+        const limites = L.latLngBounds(inicio, actual)
         inicio = null
         mapa.dragging.enable()
+        L.DomEvent.off(document, 'mousemove', alMover)
+        L.DomEvent.off(document, 'mouseup', alSoltar)
         if (rectangulo) { rectangulo.remove(); rectangulo = null }
         const o = limites.getWest(), es = limites.getEast()
         const s = limites.getSouth(), n = limites.getNorth()
         const anillo = [[o, s], [es, s], [es, n], [o, n]]
         if (alDibujarCallback) alDibujarCallback(anillo)
+      }
+
+      mapa.on('mousedown', (e) => {
+        if (!e.originalEvent.shiftKey) return
+        if (inicio) return // gesto ya en curso
+        inicio = e.latlng
+        mapa.dragging.disable()
+        L.DomEvent.on(document, 'mousemove', alMover)
+        L.DomEvent.on(document, 'mouseup', alSoltar)
       })
     },
   }
