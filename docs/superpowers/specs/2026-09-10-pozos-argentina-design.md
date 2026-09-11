@@ -1,7 +1,14 @@
 # pozos-argentina — Diseño
 
 - **Fecha:** 2026-09-10
-- **Estado:** aprobado, pendiente de plan de implementación
+- **Estado:** aprobado
+
+## Historial de revisiones
+
+| Revisión | Cambio |
+|---|---|
+| 2026-09-10 a | Versión inicial: CKAN consultado en runtime desde el navegador. |
+| 2026-09-10 b | **`datos.energia.gob.ar` degrada HTTPS a HTTP con un 301, y el navegador bloquea ese salto por mixed content.** La consulta en runtime es imposible desde un sitio servido por HTTPS. Todo pasa a precomputarse en build time. |
 
 ## Qué es
 
@@ -28,7 +35,7 @@ supuestos sin verificar.
 
 | | WMS (`sig.energia.gob.ar`) | CKAN pozos | CKAN producción |
 |---|---|---|---|
-| Pozos | 85.337 | 85.611 | 83.197 (2026) |
+| Pozos | 85.337 | 85.611 | 85.253 con producción 2018+ |
 | Geometría | sí | sí, columna `geojson` | sí, pero **transpuesta** |
 | Consultable con SQL | no | sí | sí |
 | Último dato | 2026-09-05 | 2026-06-12 | 2026-07 |
@@ -37,33 +44,38 @@ El recurso **"Capítulo IV - Pozos"** (`cb5c0f04-7835-45cd-b982-3e25ca7d7751`) c
 mismo universo de pozos que el WMS, con los mismos atributos más una columna `geojson` con
 geometría de punto en WGS84 correcta y sin nulos.
 
+### La restricción que define la arquitectura
+
+`https://datos.energia.gob.ar` responde **301 hacia `http://`**. Los navegadores bloquean
+ese descenso por mixed content, así que **una página servida por HTTPS no puede consultar el
+API**, ni directamente ni siguiendo el redirect. Se buscó alternativa: `datos.gob.ar` sirve
+HTTPS sano pero no federa el DataStore (`Resource ... was not found`), y no existe otro host.
+
+Consecuencia: **todo el acceso al origen ocurre en build time, desde Node**, donde el HTTP
+plano es irrelevante. El sitio publicado no hace ninguna llamada al origen.
+
 ### Capacidades verificadas del DataStore de CKAN
 
 - `datastore_search_sql` acepta SQL completo: `JOIN` entre recursos, CTE, `UNION ALL`,
   `GROUP BY`, `FILTER`, funciones de ventana.
-- CORS abierto: `Access-Control-Allow-Origin: *`. `POST` con `Content-Type: application/json`
-  funciona y está permitido por los headers CORS.
 - Sin tope de 32.000 filas: se pidieron 60.000 y las devolvió.
-- **PostGIS no está expuesto** (`st_makeenvelope` no existe). No hay consulta espacial en SQL.
-- **Timeout de gateway a los 60 s.** El volcado completo de la tabla de pozos da 504; paginado
-  de 20.000 filas responde bien.
+- **PostGIS no está expuesto** (`st_makeenvelope` no existe).
+- **Timeout de gateway a los 60 s.** El volcado de la tabla de pozos da 504 completo y
+  responde bien paginado de a 20.000 filas.
+- El agregado de producción de **todos** los pozos sobre 9 años entra en una sola consulta:
+  85.253 filas en 16,7 s.
 
-### Rendimiento de la consulta central
+### Peso de los artefactos
 
-| Ámbito | Pozos | Tiempo | Peso |
+Medido de punta a punta, con diccionario para los strings repetidos:
+
+| Artefacto | Contenido | Crudo | Gzip |
 |---|---|---|---|
-| Yacimiento (Loma Campana) | 194 | 2,07 s | — |
-| Operadora (YPF S.A.) | 12.093 | 2,50 s | — |
-| Cuenca Neuquina entera | 32.924 | 13,55 s | 17,1 MB |
+| `pozos-lite.json` | 85.611 pozos: id, lon, lat, área, yacimiento, empresa, cuenca | 3,54 MB | **0,81 MB** |
+| `pozos-full-<cuenca>.json` | Ficha completa y resumen de producción | 7,85 MB total | **0,69 MB** el mayor |
 
-Todas sobre 9 años de producción unidos con `UNION ALL` (2018–2026). Extrapolando, el país
-completo rondaría los 45 MB y se acercaría al timeout: queda fuera de alcance.
-
-### Índice de pozos
-
-Un índice compacto de los 85.611 pozos con coordenadas y seis campos de faceta pesa
-**12,4 MB en crudo y 1,25 MB comprimido**. Es el doble del `catalog.json` de
-`indec-descargas`, que ya se demostró viable.
+La partición mayor es Golfo San Jorge, con 44.390 pozos; le sigue Neuquina con 33.155. Entre
+las dos son el 90% del país.
 
 ## Decisiones tomadas
 
@@ -73,47 +85,58 @@ Un índice compacto de los 85.611 pozos con coordenadas y seis campos de faceta 
 | Forma del dato | Ficha + resumen por pozo, una fila por pozo | Cubre el 80% de los casos con el archivo más liviano y más abrible. |
 | Ámbitos | Área/concesión, yacimiento, operadora, polígono | Los cuatro colapsan en dos mecanismos, no cuatro. |
 | Formato | CSV con `lon`/`lat` | Cero dependencias. Lo abren Excel, QGIS, pandas y R. |
-| Arquitectura | CKAN como espina, WMS solo de contexto | El WMS no aporta datos que CKAN no tenga, y no se puede consultar con SQL. |
-| Pozos sin producción | `LEFT JOIN`, acumulados en cero | Un pozo perforado y sin producción declarada es información, no ruido. |
+| Origen de datos | CKAN; el WMS sólo como teselas de contexto | El WMS no aporta datos que CKAN no tenga, y no se puede consultar con SQL. |
+| Momento del cruce | Build time, precomputado | Obligado por el bloqueo de mixed content. Simplifica todo lo demás. |
+| Pozos sin producción | `LEFT JOIN`, acumulados en cero | Son **520 pozos reales**. Con `INNER JOIN` desaparecían sin aviso. |
 
 ### Enfoques descartados
 
-- **Reconciliar con el WMS para cubrir la brecha de frescura.** El WMS conoce pozos tres
-  meses más nuevos que CKAN. Cubrirlo exige un segundo volcado en build, lidiar con la cadena
-  TLS incompleta del WMS y decidir qué mostrar de un pozo sin producción. Se difiere hasta
-  saber si a alguien le importa esa brecha.
-- **WMS como espina, join en el navegador.** Entre tres y cuatro veces más trabajo, y su único
-  beneficio —frescura— lo da más barato el punto anterior.
+- **Proxy para consultar en runtime.** Un Worker de veinte líneas resolvería el mixed content,
+  pero reintroduce infraestructura para comprar frescura diaria de un dato que se publica una
+  vez por mes.
+- **Reconciliar con el WMS para cubrir la brecha de frescura.** El WMS conoce pozos tres meses
+  más nuevos que CKAN. Cubrirlo exige un segundo volcado, lidiar con la cadena TLS incompleta
+  del WMS y decidir qué mostrar de un pozo sin producción. Se difiere.
+- **WMS como espina, join en el navegador.** Entre tres y cuatro veces más trabajo, sin
+  beneficio que los anteriores no den más barato.
 
 ## Arquitectura
 
-Sitio estático. Sin backend, sin base de datos propia, sin `sql.js`. Vite 6, JavaScript
-vanilla en módulos ES, Leaflet, Vitest. Las mismas convenciones que `indec-descargas`.
+Sitio estático puro. Sin backend, sin base de datos, sin `sql.js`, **y sin ninguna llamada al
+origen desde el navegador**. Vite 6, JavaScript vanilla en módulos ES, Leaflet, Vitest. Las
+mismas convenciones que `indec-descargas`.
 
 ### Build time — `scripts/build-index.mjs`
 
-| Función | Responsabilidad |
-|---|---|
-| `resolveResources()` | Elegir, por año, el recurso de producción autoritativo entre los 44 candidatos. Cubre **2018 hasta el año en curso**; el rango es configurable en un solo lugar. |
-| `dumpPozos()` | Volcado paginado de la tabla de pozos, 20.000 filas por página, con reintento. |
-| `buildFacetas()` | Cuencas, provincias, 457 áreas, 1.184 yacimientos y 79 empresas, con conteos. |
+Corre en Node, contra `http://datos.energia.gob.ar`. Cuatro pasos:
 
-Salidas:
+1. **Resolver recursos.** Elegir, por año, el recurso de producción autoritativo entre los 44
+   candidatos. Cubre 2018 hasta el año en curso; el rango es configurable en un solo lugar.
+2. **Volcar pozos.** Paginado de 20.000 filas, con reintento.
+3. **Agregar producción.** Una sola consulta con `UNION ALL` de los años elegidos y
+   `GROUP BY idpozo`.
+4. **Construir artefactos.** Fusionar por `idpozo`, codificar con diccionario, particionar el
+   detalle por cuenca.
 
-- `public/pozos.json` — índice compacto, ~1,25 MB comprimido.
-- `public/facetas.json` — catálogo de nombres para el buscador.
-- `public/recursos.json` — ids de recurso elegidos y fecha de build.
+Salidas en `public/`:
+
+- `pozos-lite.json` — índice para mapa, buscador y polígono.
+- `pozos-full-<cuenca>.json` — una por cuenca, con ficha y producción.
+- `manifiesto.json` — ids de recurso elegidos, fecha de build, conteos y fecha del dato más
+  reciente.
 
 ### Runtime
 
 | Módulo | Responsabilidad |
 |---|---|
-| `catalogo.js` | Cargar el índice; búsqueda por nombre sobre las facetas. |
-| `ambito.js` | Resolver los selectores a un ámbito: faceta con valor, o lista de `idpozo`. |
-| `consulta.js` | Armar el SQL y hacer el `POST` a CKAN. |
-| `mapa.js` | Leaflet: pozos del ámbito y teselas WMS de contexto. |
-| `csv.js` | Construir el archivo a partir de las filas devueltas. |
+| `catalogo.js` | Cargar el lite, decodificar diccionarios, búsqueda por nombre. |
+| `ambito.js` | Resolver los selectores a una lista de `idpozo`. Punto-en-polígono. |
+| `detalle.js` | Cargar las particiones full que haga falta, bajo demanda. |
+| `csv.js` | Construir el archivo. |
 | `url.js` | Estado en la URL como única fuente de verdad. |
+| `mapa.js` | Leaflet: pozos del ámbito y teselas WMS de contexto. |
+| `buscador.js` | Entrada de texto y lista de resultados. |
+| `descarga.js` | Resumen del ámbito y botón de descarga. |
 
 ## Flujo de datos
 
@@ -122,105 +145,94 @@ facetas de la misma tabla —la tabla de pozos trae `area`, `cod_area`, `yacimie
 `cod_yacimiento`—, así que "concesión" no necesita geometría propia para funcionar como
 ámbito.
 
-1. **Por nombre** (área, yacimiento, operadora) → filtro directo en SQL: `WHERE p.area = ?`.
-2. **Por polígono dibujado** → punto-en-polígono local contra el índice → lista de `idpozo`
-   → `WHERE p.idpozo IN (...)`, enviada por `POST` para no chocar con el largo de URL.
+1. **Por nombre** (área, yacimiento, operadora) → filtro sobre el índice lite en memoria.
+2. **Por polígono dibujado** → punto-en-polígono contra el índice lite.
 
-En ambos casos el join lo hace Postgres del otro lado. El navegador no une nada.
+Ambos producen una lista de `idpozo`. Con esa lista se determinan las cuencas involucradas,
+se cargan sus particiones full y se arma el CSV. Todo en el navegador, sin red más allá de
+los archivos estáticos del propio sitio.
 
-### La consulta central
+### La consulta central (build time)
 
 ```sql
 WITH prod AS (
   SELECT idpozo, anio, mes, prod_pet, prod_gas, prod_agua, tef FROM "<recurso 2026>"
   UNION ALL
   SELECT idpozo, anio, mes, prod_pet, prod_gas, prod_agua, tef FROM "<recurso 2025>"
-  -- un recurso por año, según recursos.json
+  -- un recurso por año, según lo resuelto en el paso 1
 )
-SELECT p.idpozo, p.sigla, p.empresa, p.area, p.yacimiento, p.cuenca,
-       p.provincia, p.tipo_recurso, p.tipoestado, p.formacion,
-       p.profundidad, p.geojson,
-       count(q.idpozo)                    AS meses,
-       min(q.anio * 100 + q.mes)          AS primer_periodo,
-       max(q.anio * 100 + q.mes)          AS ultimo_periodo,
-       coalesce(sum(q.prod_pet),  0)      AS pet_acum,
-       coalesce(sum(q.prod_gas),  0)      AS gas_acum,
-       coalesce(sum(q.prod_agua), 0)      AS agua_acum,
-       coalesce(sum(q.tef),       0)      AS tef_total
-FROM "<recurso pozos>" p
-LEFT JOIN prod q ON p.idpozo = q.idpozo
-WHERE <ámbito>
-GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
+SELECT idpozo,
+       count(*)                      AS meses,
+       min(anio * 100 + mes)         AS primer_periodo,
+       max(anio * 100 + mes)         AS ultimo_periodo,
+       round(sum(prod_pet)::numeric,  1) AS pet_acum,
+       round(sum(prod_gas)::numeric,  1) AS gas_acum,
+       round(sum(prod_agua)::numeric, 1) AS agua_acum,
+       round(sum(tef)::numeric,       1) AS tef_total
+FROM prod
+GROUP BY idpozo
+ORDER BY idpozo
 ```
 
-`count(q.idpozo)` y no `count(*)`: con `LEFT JOIN`, un pozo sin producción debe dar
-`meses = 0`, no `meses = 1`.
+El `LEFT JOIN` contra los pozos ocurre en Node al fusionar: un pozo sin fila en este agregado
+queda con `meses = 0` y acumulados en cero.
 
 ### El CSV
 
-Una fila por pozo. Las columnas son las de la consulta, con `geojson` reemplazado por `lon`
-y `lat` desprendidos en el cliente. Escapado de comas, comillas y saltos de línea: los
-nombres de empresa los contienen.
+Una fila por pozo, con estas columnas en este orden:
+
+```
+idpozo, sigla, lon, lat, empresa, area, yacimiento, cuenca, provincia,
+tipo_recurso, tipo_estado, formacion, profundidad, meses,
+primer_periodo, ultimo_periodo, pet_acum, gas_acum, agua_acum, tef_total
+```
+
+Escapado de comas, comillas y saltos de línea: los nombres de empresa los contienen.
 
 ## Errores y trampas del origen
 
-El origen ya demostró que su metadato miente. El diseño asume mala fe del dato.
+El origen ya demostró que su metadato miente. El build asume mala fe del dato y **falla
+ruidoso** antes que publicar datos incompletos.
 
 | Trampa | Evidencia | Defensa |
 |---|---|---|
-| Recursos anuales duplicados y truncados | `- 2025` trae 90.000 filas; `– 2025` trae 991.844. Se distinguen por un guión | `resolveResources()` compara filas entre candidatos del mismo año y elige el mayor; el build falla si no supera el piso |
+| Recursos anuales duplicados y truncados | `- 2025` trae 90.000 filas; `– 2025` trae 991.844. Se distinguen por un guión | Comparar filas entre candidatos del mismo año y elegir el mayor; fallar si no supera el piso |
 | `datastore_active: true` mintiendo | El recurso de generación eléctrica responde `relation does not exist` | `SELECT 1 FROM "<id>" LIMIT 1` sobre cada recurso antes de aceptarlo |
 | Coordenadas transpuestas | 5.088 de 5.089 pozos con `coordenadax`/`coordenaday` invertidas | No se usan; la geometría válida es `geojson` de la tabla de pozos |
 | 504 a los 60 s | El volcado completo muere; paginado de 20.000 responde | Paginación con reintento y backoff |
-| Ids de recurso volátiles | Son UUID que cambian al republicar | Se resuelven por nombre en cada build y se congelan en `recursos.json`; si falta un año, el build falla ruidoso |
+| Ids de recurso volátiles | Son UUID que cambian al republicar | Se resuelven por nombre en cada build y se congelan en `manifiesto.json`; si falta un año, el build falla |
 
-### Techo de ámbito
-
-El índice local sabe cuántos pozos tiene un ámbito antes de consultar. El armador estima y
-avisa —"32.924 pozos, ~17 MB, unos 15 segundos"— y pide confirmación por encima de **5.000
-pozos**. El país completo se bloquea: se va contra el timeout.
-
-### SQL armado en el cliente
-
-El endpoint es público, anónimo y de solo lectura: cualquiera puede enviar el SQL que quiera.
-Esto **no es un problema de seguridad**, es uno de corrección. Los nombres provienen del
-catálogo, no de texto libre, y los `idpozo` se validan como enteros antes de armar el `IN`.
-
-### Errores en runtime
-
-CKAN devuelve 409 con el SQL en el detalle. Ese detalle se registra pero no se muestra: al
-usuario se le dice qué pasó y qué puede hacer. El origen caído y el ámbito vacío son mensajes
-distintos.
+No hay manejo de errores de red en runtime: el sitio sólo carga archivos propios. Un
+artefacto que no carga es un error de despliegue, no del origen.
 
 ## Reglas de producto
 
-Decisiones que van a `docs/reglas/` durante la implementación:
+Van a `docs/reglas/` durante la implementación:
 
 1. La geometría válida de un pozo es `geojson` de la tabla de pozos. Las columnas
    `coordenadax`/`coordenaday` de la tabla de producción están transpuestas y no se usan.
 2. Un pozo sin producción declarada aparece en el resultado con acumulados en cero y
-   `meses = 0`. No se oculta.
-3. Un ámbito de más de 5.000 pozos requiere confirmación explícita. El país completo no es un
-   ámbito válido.
+   `meses = 0`. No se oculta. Son 520 pozos.
+3. El sitio no consulta el origen en runtime. Todo dato mostrado o descargado proviene de un
+   artefacto generado en build. La fecha de ese build es visible en la interfaz.
 
 ## Testing
 
-**Unitarios sin red.** `consulta.js`: dado un ámbito, produce el SQL esperado. `csv.js`: dado
-un conjunto de filas, produce el CSV correcto, con `lon`/`lat` desprendidos y escapado
-completo. `ambito.js`: punto-en-polígono, incluido el pozo sobre el borde. `url.js`: ida y
-vuelta del estado.
+**Unitarios sin red.** `csv.js`: dado un conjunto de filas, produce el CSV correcto con
+escapado completo. `ambito.js`: punto-en-polígono, incluido el pozo sobre el borde.
+`catalogo.js`: decodificación de diccionarios y búsqueda. `url.js`: ida y vuelta del estado.
+`artefactos.mjs`: fusión, codificación y partición.
 
 **Contra fixtures grabados.** Respuestas reales de CKAN guardadas como archivos, para probar
-parseo y agregación sin red.
+parseo y fusión sin red.
 
-**Guardas del build.** El test de mayor valor: `resolveResources()` sobre el catálogo real
-grabado debe elegir `– 2025` y descartar `- 2025`. Si esa lógica se rompe, el sitio publica el
-9% de los datos sin avisar.
+**Guardas del build.** El test de mayor valor: la resolución de recursos sobre el catálogo
+real grabado debe elegir `– 2025` y descartar `- 2025`. Si esa lógica se rompe, el sitio
+publica el 9% de los datos sin avisar.
 
 **Contrato contra el origen vivo.** Corre aparte de `npm test`, como `npm run test:contrato`:
-verifica que la tabla de pozos existe, que la consulta central devuelve las columnas
-esperadas y que el recurso del año en curso no encogió. Es la alarma de que Energía cambió
-algo.
+verifica que la tabla de pozos existe, que la consulta de agregación devuelve las columnas
+esperadas y que el recurso del año en curso no encogió.
 
 No se prueba que Leaflet dibuje.
 
@@ -236,10 +248,10 @@ No se prueba que Leaflet dibuje.
 
 ## Riesgos abiertos
 
-- **La brecha de frescura de tres meses.** Los pozos de CKAN van detrás de los del WMS. Si
-  resulta que a los usuarios les importa, hay que hacer la reconciliación diferida.
+- **La frescura depende del build.** Si nadie lo corre, el sitio envejece en silencio. El
+  `manifiesto.json` expone la fecha para que se note.
 - **Los recursos "(DDJJ)".** Hay variantes por año cuyo contenido no se comparó con el del
-  recurso principal. `resolveResources()` elige por cantidad de filas, que es una heurística,
-  no una certeza. Conviene documentar qué son antes de confiar del todo.
-- **Estabilidad del catálogo.** Todo el build depende de que los nombres de recurso sigan
-  siendo reconocibles. El test de contrato es la red, pero es una red que avisa tarde.
+  recurso principal. La elección por cantidad de filas es una heurística, no una certeza.
+- **La brecha de frescura de tres meses** frente al WMS, si resulta que a alguien le importa.
+- **Estabilidad del catálogo.** El build depende de que los nombres de recurso sigan siendo
+  reconocibles. El test de contrato es la red, pero avisa tarde.
