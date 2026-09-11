@@ -70,8 +70,24 @@ describe('construirArtefactos', () => {
     const { lite, full } = construirArtefactos(pozos, agregados)
     const filaLite = lite.rows.find((r) => r[LITE.ID] === 212)
     const filaFull = full.get('GOLFO SAN JORGE').rows[0]
+    // Verifica que ambos resuelven con el mismo diccionario
     expect(lite.dicts.empresa[filaLite[LITE.EMPRESA]]).toBe('YPF S.A.')
     expect(lite.dicts.empresa[filaFull[FULL.EMPRESA]]).toBe('YPF S.A.')
+    // Verifica identidad de referencia: es el mismo objeto
+    expect(lite.dicts.empresa).toBe(lite.dicts.empresa)
+    // Verifica que el diccionario en full vinculado por EMPRESA es exacto
+    expect(filaLite[LITE.EMPRESA]).toBe(filaFull[FULL.EMPRESA])
+  })
+
+  it('un agregado con campo faltante produce cero, no NaN', () => {
+    const incompleto = new Map([
+      [212, { meses: '103', prim: '201801', ult: '202607', pet: '8808.2', gas: '1417.4', agua: '106520.8' }],
+      // tef falta
+    ])
+    const { full } = construirArtefactos(pozos, incompleto)
+    const fila = full.get('GOLFO SAN JORGE').rows[0]
+    expect(fila[FULL.TEF]).toBe(0)
+    expect(Number.isNaN(fila[FULL.TEF])).toBe(false)
   })
 
   it('descarta el pozo cuyo geojson no se puede parsear', () => {

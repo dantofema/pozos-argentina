@@ -22,7 +22,7 @@ export function construirDiccionarios(pozos) {
 export function nombreArchivoCuenca(cuenca) {
   return cuenca
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
@@ -74,13 +74,13 @@ export function construirArtefactos(pozos, agregados) {
       idx('provincia', p), idx('tipo_recurso', p),
       idx('tipoestado', p), idx('formacion', p),
       Number(p.profundidad ?? 0) || 0,
-      a ? Number(a.meses) : 0,
-      a ? Number(a.prim) : 0,
-      a ? Number(a.ult) : 0,
-      a ? Number(a.pet) : 0,
-      a ? Number(a.gas) : 0,
-      a ? Number(a.agua) : 0,
-      a ? Number(a.tef) : 0,
+      a ? Number(a.meses ?? 0) : 0,
+      a ? Number(a.prim ?? 0) : 0,
+      a ? Number(a.ult ?? 0) : 0,
+      a ? Number(a.pet ?? 0) : 0,
+      a ? Number(a.gas ?? 0) : 0,
+      a ? Number(a.agua ?? 0) : 0,
+      a ? Number(a.tef ?? 0) : 0,
     ]
 
     const cuenca = p.cuenca ?? ''
