@@ -16,7 +16,7 @@ export function normalizar(texto) {
 }
 
 /** Carga el índice y el manifiesto que dejó el build. */
-export async function cargarCatalogo(base = '/') {
+export async function cargarCatalogo(base = import.meta.env.BASE_URL) {
   const [lite, manifiesto] = await Promise.all([
     fetch(`${base}pozos-lite.json`).then((r) => r.json()),
     fetch(`${base}manifiesto.json`).then((r) => r.json()),

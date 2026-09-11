@@ -39,13 +39,23 @@ async function main() {
   log('Agregando producción…')
   const agregadosCrudos = await sql(sqlAgregado(recursos))
   assertMinFilas('agregado de producción', agregadosCrudos.length, MIN_AGREGADOS)
-  assertColumnas('agregado de producción', agregadosCrudos[0], ['idpozo', 'meses', 'pet', 'ult'])
+  assertColumnas('agregado de producción', agregadosCrudos[0], [
+    'idpozo', 'meses', 'prim', 'ult', 'pet', 'gas', 'agua', 'tef',
+  ])
   const agregados = new Map(agregadosCrudos.map((a) => [Number(a.idpozo), a]))
   log(`  ${agregados.size} pozos con producción`)
 
   log('Construyendo artefactos…')
-  const { lite, full, sinProduccion } = construirArtefactos(pozos, agregados)
-  log(`  ${lite.rows.length} pozos en el índice, ${sinProduccion} sin producción`)
+  const { lite, full, sinProduccion, descartados } = construirArtefactos(pozos, agregados)
+  log(`  ${lite.rows.length} pozos en el índice, ${sinProduccion} sin producción, ${descartados} descartados`)
+
+  // Guarda contra los dos filtros silenciosos que corren después de las guardas
+  // sobre el volcado crudo: geometría no parseable (construirArtefactos descarta
+  // el pozo) y una fusión por idpozo que no matchea nada (todo cae en sinProduccion).
+  // Sin esto el build podía escribir un índice chico o un dataset entero en cero
+  // y salir con código 0.
+  assertMinFilas('pozos en el índice publicado', lite.rows.length, MIN_POZOS)
+  assertMinFilas('pozos con producción publicados', lite.rows.length - sinProduccion, MIN_AGREGADOS)
 
   await mkdir(SALIDA, { recursive: true })
   await writeFile(new URL('pozos-lite.json', SALIDA), JSON.stringify(lite))
@@ -64,6 +74,7 @@ async function main() {
       generado: new Date().toISOString(),
       pozos: lite.rows.length,
       sinProduccion,
+      descartados,
       ultimoPeriodo,
       recursos: recursos.map(({ anio, id, nombre, filas }) => ({ anio, id, nombre, filas })),
       cuencas,

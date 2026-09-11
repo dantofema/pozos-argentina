@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { nombreArchivoCuenca, cargarDetalle } from './detalle.js'
 import { nombreArchivoCuenca as nombreDelBuild } from '../../scripts/lib/artefactos.mjs'
 
@@ -37,24 +37,65 @@ describe('nombreArchivoCuenca - equivalencia con build', () => {
   })
 })
 
+// `fetch` se mockea explícitamente: con URL relativa, el `fetch` real de Node
+// rechaza con un TypeError al intentar parsear la URL, antes de tocar la red.
+// Eso hacía pasar los tres tests de este bloque sin ejercitar el código de
+// `cargarDetalle` (`if (!r.ok)`, el guard de `datos.rows`, la cache) — el texto
+// del TypeError o de la propia URL de prueba contenía por casualidad la
+// substring que el test buscaba. Cada test usa una cuenca ficticia propia para
+// no compartir la cache de `archivo` (module-level) entre tests.
 describe('cargarDetalle - errores y cache', () => {
-  it('rechaza con error si la respuesta no es ok', async () => {
-    const error = await cargarDetalle(['NO_EXISTE_ESTA_CUENCA'], '/').catch((e) => e)
-    expect(error).toBeInstanceOf(Error)
-    expect(error.message).toContain('pozos-full-no-existe-esta-cuenca.json')
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
-  it('no envenenece la cache en caso de fallo: un reintento busca de nuevo', async () => {
-    // Primer intento falla
-    await expect(cargarDetalle(['NO_EXISTE_OTRA'], '/')).rejects.toThrow()
-    // Segundo intento vuelve a pedirlo (en la práctica falla de nuevo, pero sin reutilizar promesa)
-    const error2 = await cargarDetalle(['NO_EXISTE_OTRA'], '/').catch((e) => e)
-    expect(error2).toBeInstanceOf(Error)
+  it('si la respuesta no es ok, el error nombra el archivo', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+    })))
+
+    const error = await cargarDetalle(['CUENCA MOCK NO OK'], '/base/').catch((e) => e)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(error.message).toContain('pozos-full-cuenca-mock-no-ok.json')
   })
 
-  it('rechaza si la respuesta no tiene rows', async () => {
-    const error = await cargarDetalle(['GOLFO SAN JORGE'], '/test-no-rows-').catch((e) => e)
+  it('si la respuesta ok no trae rows, rechaza con el mensaje del guard', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ algo: 'que no es rows' }),
+    })))
+
+    const error = await cargarDetalle(['CUENCA MOCK SIN FILAS'], '/base/').catch((e) => e)
+
     expect(error).toBeInstanceOf(Error)
-    expect(error.message).toContain('rows')
+    // El texto exacto del guard, no sólo "rows": si el guard se saltea, la
+    // función igual explota más abajo al iterar `datos.rows` (undefined) en el
+    // `for...of`, y ese TypeError también contiene la palabra "rows" — por eso
+    // no alcanza con un toContain('rows') genérico para probar que el guard
+    // explícito es el que corrió.
+    expect(error.message).toContain("no contiene un array 'rows'")
+  })
+
+  it('no envenena la cache: si el fetch falla, el siguiente intento vuelve a pedir la red', async () => {
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ rows: [[212, 'CH.CH.EaLE.x-1']] }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const primerIntento = await cargarDetalle(['CUENCA MOCK RETRY'], '/base/').catch((e) => e)
+    expect(primerIntento).toBeInstanceOf(Error)
+
+    // Si la cache hubiera guardado la promesa rechazada, este segundo intento
+    // volvería a rechazar sin llamar a fetch de nuevo.
+    const porId = await cargarDetalle(['CUENCA MOCK RETRY'], '/base/')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(porId.get(212)).toEqual([212, 'CH.CH.EaLE.x-1'])
   })
 })

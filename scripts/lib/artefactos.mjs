@@ -53,10 +53,14 @@ export function construirArtefactos(pozos, agregados) {
   const lite = []
   const full = new Map()
   let sinProduccion = 0
+  let descartados = 0
 
   for (const p of pozos) {
     const c = coordenadas(p.geojson)
-    if (!c) continue
+    if (!c) {
+      descartados++
+      continue
+    }
 
     const id = Number(p.idpozo)
     const iEmpresa = idx('empresa', p)
@@ -88,5 +92,5 @@ export function construirArtefactos(pozos, agregados) {
     full.get(cuenca).rows.push(fila)
   }
 
-  return { lite: { dicts, rows: lite }, full, sinProduccion }
+  return { lite: { dicts, rows: lite }, full, sinProduccion, descartados }
 }

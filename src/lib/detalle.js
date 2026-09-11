@@ -14,7 +14,7 @@ export function nombreArchivoCuenca(cuenca) {
 const cache = new Map()
 
 /** Carga las particiones de las cuencas pedidas y devuelve las filas por id de pozo. */
-export async function cargarDetalle(cuencas, base = '/') {
+export async function cargarDetalle(cuencas, base = import.meta.env.BASE_URL) {
   const porId = new Map()
   for (const cuenca of cuencas) {
     const archivo = `pozos-full-${nombreArchivoCuenca(cuenca)}.json`

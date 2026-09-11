@@ -99,6 +99,18 @@ describe('construirArtefactos', () => {
     const { lite } = construirArtefactos(roto, new Map())
     expect(lite.rows).toHaveLength(0)
   })
+
+  it('cuenta en descartados el pozo cuyo geojson no se puede parsear', () => {
+    const mezcla = [pozos[0], { ...pozos[1], geojson: 'no es json' }]
+    const { lite, descartados } = construirArtefactos(mezcla, new Map())
+    expect(descartados).toBe(1)
+    expect(lite.rows).toHaveLength(1)
+  })
+
+  it('no descarta nada cuando todos los geojson parsean', () => {
+    const { descartados } = construirArtefactos(pozos, agregados)
+    expect(descartados).toBe(0)
+  })
 })
 
 describe('nombreArchivoCuenca', () => {

@@ -60,10 +60,37 @@ antes. Ninguna de las dos tiene claves `(idpozo, anio, mes)` repetidas, así que
 de una con registros duplicados de la otra: "abiertas y cerradas" es un superconjunto que
 además incluye declaraciones juradas todavía no cerradas.
 
-En los años ya cerrados pasa lo contrario: la principal es mucho más grande que la DDJJ —en
-2023, 974.971 contra 225.574—, así que ahí la heurística de D4 hubiera elegido bien incluso
-sin este filtro. El problema es sólo el año en curso, y es justo el que más importa: sin
-excluir la DDJJ, la serie saldría de declaraciones cerradas para 2018–2025 y de declaraciones
-abiertas más cerradas para el año en curso —un acumulado que no es reproducible mes a mes y
-que no se puede comparar contra el resto de la serie. La homogeneidad de la serie completa
-pesa más que llegar al mes más reciente posible.
+En los años ya cerrados la principal suele ser mucho más grande que la DDJJ —en 2023,
+974.971 contra 225.574—, pero no siempre: en 2020, un año cerrado, la DDJJ tiene 954.001
+filas contra 953.660 de la principal (ver `tests/fixtures/recursos-candidatos.json`), apenas
+341 más. Ahí también la heurística "se queda con el que tiene más filas" hubiera elegido mal
+si no se excluyera la DDJJ sin condición. Esto refuerza la regla, no la debilita: el filtro
+no es un parche para el año en curso, es necesario incluso en años ya cerrados. El problema es
+más agudo en el año en curso, y es justo el que más importa: sin excluir la DDJJ, la serie
+saldría de declaraciones cerradas para 2018–2025 y de declaraciones abiertas más cerradas
+para el año en curso —un acumulado que no es reproducible mes a mes y que no se puede
+comparar contra el resto de la serie. La homogeneidad de la serie completa pesa más que
+llegar al mes más reciente posible.
+
+## D6 — Los nombres de yacimiento y área se resuelven sin desambiguar por cuenca
+
+`porFaceta` (`src/lib/ambito.js`) busca una faceta por nombre contra el diccionario del
+catálogo y no distingue cuenca: si dos cuencas comparten el mismo nombre de yacimiento o de
+área, elegir ese nombre en el buscador trae los pozos de ambas mezclados.
+
+Medido sobre el índice publicado: afecta a **25 nombres de yacimiento y 1 nombre de área,
+5.181 pozos en total, ≈6 % del padrón**. `EL TORDILLO` devuelve 1.621 pozos mezclando Golfo
+San Jorge y Austral; `CERRO NEGRO` mezcla tres cuencas (Golfo San Jorge, Austral, Neuquina);
+`POZOS SIN YACIMIENTO` —un valor de relleno para el pozo sin yacimiento declarado, no un
+nombre de yacimiento real— aparece igual como opción buscable, con 513 pozos repartidos en
+cinco cuencas.
+
+Se decidió no cambiar el comportamiento. Desambiguar por cuenca no es un cambio local: la
+cuenca tendría que viajar también en el estado de la URL (`src/lib/url.js`), porque si no un
+enlace compartido a `EL TORDILLO` sigue siendo ambiguo al abrirse. Eso encadena cambios en el
+catálogo, en la resolución de ámbito (`porFaceta`), en el buscador y en la URL —una
+refactorización estructural, no una corrección puntual. Queda como limitación conocida hasta
+que el dueño del producto decida si vale ese costo, con estos números delante.
+
+Mientras tanto, el CSV que se descarga trae una columna `cuenca` (ver `COLUMNAS_CSV` en
+`src/lib/esquema.js`), así que una descarga que mezcla cuencas es filtrable después.
