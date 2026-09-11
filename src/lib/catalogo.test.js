@@ -8,12 +8,13 @@ const catalogo = {
     yacimiento: ['LOMA CAMPANA-LLL', 'CAÑADON SECO'],
     empresa: ['YPF S.A.', 'VISTA ENERGY ARGENTINA SAU'],
     cuenca: ['NEUQUINA', 'GOLFO SAN JORGE'],
+    sigla: ['YPF.Nq.LC-1', 'YPF.Nq.LC-2', 'PBE.Ch.CS-9'],
   },
   rows: [
     // id, lon, lat, area, yacimiento, empresa, cuenca
-    [1, -68.6, -38.3, 0, 0, 0, 0],
-    [2, -68.7, -38.4, 0, 0, 0, 0],
-    [3, -67.5, -45.9, 1, 1, 1, 1],
+    [1, -68.6, -38.3, 0, 0, 0, 0, 0],
+    [2, -68.7, -38.4, 0, 0, 0, 0, 1],
+    [3, -67.5, -45.9, 1, 1, 1, 1, 2],
   ],
 }
 
@@ -30,9 +31,17 @@ describe('construirFacetas', () => {
     expect(loma.cantidad).toBe(2)
   })
 
-  it('produce facetas de área, yacimiento y empresa', () => {
+  it('produce facetas de los cinco tipos buscables', () => {
     const tipos = new Set(construirFacetas(catalogo).map((f) => f.tipo))
-    expect([...tipos].sort()).toEqual(['area', 'empresa', 'yacimiento'])
+    expect([...tipos].sort()).toEqual(['area', 'cuenca', 'empresa', 'sigla', 'yacimiento'])
+  })
+
+  it('saltea un tipo cuyo diccionario no está, sin tirar la página', () => {
+    const viejo = { ...catalogo, dicts: { ...catalogo.dicts } }
+    delete viejo.dicts.sigla
+    const tipos = new Set(construirFacetas(viejo).map((f) => f.tipo))
+    expect(tipos.has('sigla')).toBe(false)
+    expect(tipos.has('yacimiento')).toBe(true)
   })
 
   it('no inventa facetas para valores sin pozos', () => {
@@ -77,11 +86,12 @@ const catalogoHomonimo = {
     yacimiento: ['EL TORDILLO'],
     empresa: ['YPF S.A.'],
     cuenca: ['GOLFO SAN JORGE', 'AUSTRAL'],
+    sigla: ['A-1', 'A-2', 'A-3'],
   },
   rows: [
-    [1, -67.5, -45.9, 0, 0, 0, 0],
-    [2, -67.6, -45.8, 0, 0, 0, 0],
-    [3, -69.0, -51.0, 0, 0, 0, 1],
+    [1, -67.5, -45.9, 0, 0, 0, 0, 0],
+    [2, -67.6, -45.8, 0, 0, 0, 0, 1],
+    [3, -69.0, -51.0, 0, 0, 0, 1, 2],
   ],
 }
 

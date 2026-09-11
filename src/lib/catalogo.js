@@ -5,6 +5,8 @@ const COLUMNA_POR_TIPO = {
   area: LITE.AREA,
   yacimiento: LITE.YACIMIENTO,
   empresa: LITE.EMPRESA,
+  cuenca: LITE.CUENCA,
+  sigla: LITE.SIGLA,
 }
 
 const FACETAS = TIPOS_FACETA.map((tipo) => ({
@@ -35,6 +37,9 @@ export async function cargarCatalogo(base = import.meta.env.BASE_URL) {
 export function construirFacetas(catalogo) {
   const salida = []
   for (const { tipo, columna, porCuenca } of FACETAS) {
+    // Un artefacto de un build anterior puede no traer este diccionario: se
+    // saltea el tipo en vez de tirar la página entera.
+    if (!catalogo.dicts[tipo]) continue
     const cuenta = new Map()
     for (const fila of catalogo.rows) {
       // Un yacimiento o un área con el mismo nombre en dos cuencas son dos cosas

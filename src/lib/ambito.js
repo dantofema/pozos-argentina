@@ -5,6 +5,7 @@ const COLUMNA_POR_TIPO = {
   yacimiento: LITE.YACIMIENTO,
   empresa: LITE.EMPRESA,
   cuenca: LITE.CUENCA,
+  sigla: LITE.SIGLA,
 }
 
 /** Ray casting. El caso del punto exactamente sobre el borde no está definido. */

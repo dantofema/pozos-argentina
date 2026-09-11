@@ -9,11 +9,11 @@ export const FILAS_POR_PAGINA = 20000
 /** Columnas cuyos valores se reemplazan por un índice a un diccionario. */
 export const COLUMNAS_DICT = [
   'empresa', 'area', 'yacimiento', 'cuenca',
-  'provincia', 'tipo_recurso', 'tipoestado', 'formacion',
+  'provincia', 'tipo_recurso', 'tipoestado', 'formacion', 'sigla',
 ]
 
 /** Tipos de faceta buscables. */
-export const TIPOS_FACETA = ['area', 'yacimiento', 'empresa']
+export const TIPOS_FACETA = ['area', 'yacimiento', 'empresa', 'cuenca', 'sigla']
 
 /**
  * Si la cuenca acota o no a ese tipo de faceta.
@@ -24,12 +24,12 @@ export const TIPOS_FACETA = ['area', 'yacimiento', 'empresa']
  * YPF". Esta es la única definición de esa regla; todo lo demás la consulta.
  */
 export function admiteCuenca(tipo) {
-  return tipo === 'area' || tipo === 'yacimiento'
+  return tipo === 'area' || tipo === 'yacimiento' || tipo === 'sigla'
 }
 
 /** Posición de cada campo en una fila de `pozos-lite.json`. */
 export const LITE = {
-  ID: 0, LON: 1, LAT: 2, AREA: 3, YACIMIENTO: 4, EMPRESA: 5, CUENCA: 6,
+  ID: 0, LON: 1, LAT: 2, AREA: 3, YACIMIENTO: 4, EMPRESA: 5, CUENCA: 6, SIGLA: 7,
 }
 
 /** Posición de cada campo en una fila de `pozos-full-<cuenca>.json`. */

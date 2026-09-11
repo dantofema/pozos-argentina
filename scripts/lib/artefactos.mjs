@@ -68,7 +68,7 @@ export function construirArtefactos(pozos, agregados) {
     const iYacimiento = idx('yacimiento', p)
     const iCuenca = idx('cuenca', p)
 
-    lite.push([id, c[0], c[1], iArea, iYacimiento, iEmpresa, iCuenca])
+    lite.push([id, c[0], c[1], iArea, iYacimiento, iEmpresa, iCuenca, idx('sigla', p)])
 
     const a = agregados.get(id)
     if (!a) sinProduccion++

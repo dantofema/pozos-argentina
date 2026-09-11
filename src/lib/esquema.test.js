@@ -5,12 +5,12 @@ describe('esquema', () => {
   it('declara las ocho columnas que van a diccionario', () => {
     expect(COLUMNAS_DICT).toEqual([
       'empresa', 'area', 'yacimiento', 'cuenca',
-      'provincia', 'tipo_recurso', 'tipoestado', 'formacion',
+      'provincia', 'tipo_recurso', 'tipoestado', 'formacion', 'sigla',
     ])
   })
 
   it('los índices de LITE son consecutivos y sin huecos', () => {
-    expect(Object.values(LITE).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(Object.values(LITE).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
   })
 
   it('los índices de FULL son consecutivos y sin huecos', () => {

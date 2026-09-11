@@ -7,11 +7,12 @@ const catalogo = {
     yacimiento: ['LOMA CAMPANA-LLL', 'CAÑADON SECO'],
     empresa: ['YPF S.A.', 'VISTA ENERGY ARGENTINA SAU'],
     cuenca: ['NEUQUINA', 'GOLFO SAN JORGE'],
+    sigla: ['YPF.Nq.LC-1', 'YPF.Nq.LC-2', 'PBE.Ch.CS-9'],
   },
   rows: [
-    [1, -68.6, -38.3, 0, 0, 0, 0],
-    [2, -68.7, -38.4, 0, 0, 0, 0],
-    [3, -67.5, -45.9, 1, 1, 1, 1],
+    [1, -68.6, -38.3, 0, 0, 0, 0, 0],
+    [2, -68.7, -38.4, 0, 0, 0, 0, 1],
+    [3, -67.5, -45.9, 1, 1, 1, 1, 2],
   ],
 }
 
@@ -75,7 +76,7 @@ describe('cuencasDe', () => {
         cuenca: ['NEUQUINA'],
       },
       rows: [
-        [1, -68.6, -38.3, 0, 0, 0, 0],
+        [1, -68.6, -38.3, 0, 0, 0, 0, 0],
         [2, -68.7, -38.4, 0, 0, 0, 99], // Índice 99 no existe en dicts.cuenca
       ],
     }
@@ -89,11 +90,12 @@ const catalogoHomonimo = {
     yacimiento: ['EL TORDILLO'],
     empresa: ['YPF S.A.'],
     cuenca: ['GOLFO SAN JORGE', 'AUSTRAL'],
+    sigla: ['A-1', 'A-2', 'A-3'],
   },
   rows: [
-    [1, -67.5, -45.9, 0, 0, 0, 0],
-    [2, -67.6, -45.8, 0, 0, 0, 0],
-    [3, -69.0, -51.0, 0, 0, 0, 1],
+    [1, -67.5, -45.9, 0, 0, 0, 0, 0],
+    [2, -67.6, -45.8, 0, 0, 0, 0, 1],
+    [3, -69.0, -51.0, 0, 0, 0, 1, 2],
   ],
 }
 
