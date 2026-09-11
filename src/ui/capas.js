@@ -2,6 +2,22 @@
 export const WMS = 'https://sig.energia.gob.ar/wmsenergia'
 
 /**
+ * Capa base: argenmap del IGN, servida como TMS desde su GeoWebCache.
+ *
+ * Es la cartografía oficial argentina y reemplaza a OpenStreetMap: nombres,
+ * rutas y límites en castellano y con el criterio del IGN, que es el que
+ * corresponde para un sitio de datos argentinos.
+ */
+export const ARGENMAP = {
+  url: 'https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{y}.png',
+  opciones: {
+    tms: true,
+    maxZoom: 18,
+    attribution: 'Capa base © <a href="https://www.ign.gob.ar/">IGN</a> — argenmap',
+  },
+}
+
+/**
  * Capas del WMS que se pintan de fondo. Son sólo teselas: no se consultan.
  * El WMS no tiene datos que CKAN no tenga, y su cadena TLS está incompleta.
  */

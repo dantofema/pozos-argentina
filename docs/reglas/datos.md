@@ -107,3 +107,23 @@ URL escrita a mano como `?t=empresa&v=YPF+S.A.&c=AUSTRAL` devolvía correctament
 pozos de toda la empresa pero bajaba un archivo llamado `pozos-empresa-ypf-s-a-austral.csv`.
 El nombre mentía sobre el contenido, que en una herramienta cuyo producto es el CSV importa
 más que un error de pantalla.
+
+## D7 — La capa base es siempre argenmap del IGN
+
+El mapa usa como única capa base **argenmap**, la cartografía oficial del Instituto Geográfico
+Nacional, servida como TMS desde su GeoWebCache:
+
+```
+https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{y}.png
+```
+
+Reemplaza a OpenStreetMap, que era lo que había. En un sitio de datos argentinos la
+toponimia, los límites y el trazado de la plataforma continental deben seguir el criterio del
+IGN, no el de un proyecto colaborativo internacional.
+
+Dos detalles que hay que respetar al tocar esto: el servicio es **TMS**, que invierte el eje
+Y respecto del esquema XYZ habitual —de ahí `tms: true` en las opciones de Leaflet—, y hay
+que mantener la atribución al IGN a la vista.
+
+No se ofrece un selector de capa base. El control de capas del mapa es sólo para las capas de
+contexto del WMS de Energía (concesiones, ductos, yacimientos), que se superponen.

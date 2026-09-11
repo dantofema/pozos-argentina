@@ -37,7 +37,8 @@ body {
   padding: 12px 24px 16px;
 }
 
-.buscador { display: block; }
+.buscador { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.buscador__campo { display: block; }
 .buscador__etiqueta {
   display: block;
   font-size: 11px;
@@ -65,6 +66,39 @@ body {
   overflow-y: auto;
   width: min(420px, 90vw);
 }
+.buscador__tipo-sel {
+  padding: 9px 10px;
+  border: 1px solid var(--linea);
+  border-radius: 3px;
+  background: var(--superficie);
+  color: inherit;
+  font: inherit;
+}
+.buscador__tipo-sel:focus-visible { outline: 2px solid var(--cobre); outline-offset: 1px; }
+
+.herramientas { display: flex; gap: 8px; }
+.herramientas__boton {
+  padding: 9px 14px;
+  border: 1px solid var(--linea);
+  border-radius: 3px;
+  background: var(--superficie);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.herramientas__boton:hover { background: #f5f7f8; }
+.herramientas__boton:focus-visible { outline: 2px solid var(--cobre); outline-offset: 1px; }
+.herramientas__boton--activo {
+  background: var(--petroleo);
+  border-color: var(--petroleo);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Mientras se dibuja una zona el cursor lo dice, y el mapa no se arrastra. */
+.mapa--dibujando, .mapa--dibujando .leaflet-grab { cursor: crosshair; }
+
 .buscador__opcion {
   display: grid;
   grid-template-columns: 78px 1fr auto auto;

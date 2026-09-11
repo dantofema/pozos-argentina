@@ -6,6 +6,7 @@ import { construirCsv } from './lib/csv.js'
 import { leerEstado, escribirEstado } from './lib/url.js'
 import { crearMapa } from './ui/mapa.js'
 import { crearBuscador } from './ui/buscador.js'
+import { crearHerramientas } from './ui/herramientas.js'
 import { crearPanelDescarga, nombreArchivo, descargarCsv } from './ui/descarga.js'
 
 const app = document.querySelector('#app')
@@ -13,12 +14,13 @@ app.innerHTML = `
   <header class="cabecera">
     <h1>Pozos de hidrocarburos de Argentina</h1>
     <p class="cabecera__bajada">
-      Elegí un área, un yacimiento, una operadora o dibujá un recorte con Shift + arrastrar,
-      y bajate el CSV con la producción acumulada de cada pozo.
+      Elegí un área, un yacimiento, una operadora, una cuenca o un pozo —o dibujá una zona
+      sobre el mapa— y bajate el CSV con la producción acumulada de cada pozo.
     </p>
   </header>
   <div class="panel">
     <div id="buscador"></div>
+    <div id="herramientas"></div>
     <div id="descarga"></div>
     <p class="pie" id="pie"></p>
   </div>
@@ -33,7 +35,6 @@ try {
   const facetas = construirFacetas(catalogo)
 
   const mapa = crearMapa(document.querySelector('#mapa'))
-  mapa.habilitarDibujo()
   const panel = crearPanelDescarga(document.querySelector('#descarga'))
 
   const m = catalogo.manifiesto
@@ -89,7 +90,7 @@ try {
     })
   }
 
-  crearBuscador(document.querySelector('#buscador'), facetas, (faceta) => {
+  const buscador = crearBuscador(document.querySelector('#buscador'), facetas, (faceta) => {
     aplicar({
       modo: 'faceta',
       tipo: faceta.tipo,
@@ -102,6 +103,17 @@ try {
   mapa.alDibujar((anillo) => {
     aplicar({ modo: 'poligono', tipo: null, valor: null, cuenca: null, poligono: anillo })
   })
+
+  const herramientas = crearHerramientas(document.querySelector('#herramientas'), {
+    alDibujar: () => mapa.alternarDibujo(),
+    alVolver: () => {
+      buscador.limpiar()
+      mapa.volverAlInicio()
+      history.pushState(null, '', location.pathname)
+      aplicar(leerEstado(''), { empujarHistorial: false })
+    },
+  })
+  mapa.alCambiarModoDibujo((activo) => herramientas.marcarDibujando(activo))
 
   window.addEventListener('popstate', () => {
     aplicar(leerEstado(location.search), { empujarHistorial: false })

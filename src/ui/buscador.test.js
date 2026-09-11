@@ -64,3 +64,65 @@ describe('crearBuscador', () => {
     expect(boton.querySelector('.buscador__cuenca').textContent).toBe('<img src=x onerror=alert(1)>')
   })
 })
+
+const conPozos = [
+  { tipo: 'empresa', valor: 'YPF S.A.', cuenca: null, indice: 0, cantidad: 12093, buscable: 'ypf s.a.' },
+  { tipo: 'area', valor: 'YPF NORTE', cuenca: 'NOROESTE', indice: 1, cantidad: 40, buscable: 'ypf norte' },
+  ...Array.from({ length: 30 }, (_, i) => ({
+    tipo: 'sigla', valor: `YPF.Nq.LC-${i}`, cuenca: 'NEUQUINA', indice: i, cantidad: 1,
+    buscable: `ypf.nq.lc-${i}`,
+  })),
+]
+
+function elegirTipo(valor) {
+  const s = contenedor.querySelector('.buscador__tipo-sel')
+  s.value = valor
+  s.dispatchEvent(new Event('change'))
+  return [...contenedor.querySelectorAll('.buscador__opcion')]
+}
+
+describe('selector de tipo', () => {
+  it('arranca en Todos', () => {
+    crearBuscador(contenedor, conPozos, () => {})
+    expect(contenedor.querySelector('.buscador__tipo-sel').value).toBe('todos')
+  })
+
+  it('en Todos los pozos sueltos no inundan: entran con cupo y al final', () => {
+    crearBuscador(contenedor, conPozos, () => {})
+    const tipos = escribir('ypf').map((b) => b.querySelector('.buscador__tipo').textContent)
+    // Hay 30 pozos que matchean; sólo deben entrar 5, después de las facetas.
+    expect(tipos.filter((t) => t === 'Pozo')).toHaveLength(5)
+    expect(tipos.indexOf('Pozo')).toBeGreaterThan(tipos.indexOf('Operadora'))
+  })
+
+  it('elegir un tipo deja sólo ese tipo', () => {
+    crearBuscador(contenedor, conPozos, () => {})
+    escribir('ypf')
+    expect(new Set(elegirTipo('empresa').map((b) => b.querySelector('.buscador__tipo').textContent)))
+      .toEqual(new Set(['Operadora']))
+    expect(new Set(elegirTipo('sigla').map((b) => b.querySelector('.buscador__tipo').textContent)))
+      .toEqual(new Set(['Pozo']))
+  })
+
+  it('un tipo sin coincidencias no devuelve nada', () => {
+    crearBuscador(contenedor, conPozos, () => {})
+    escribir('ypf')
+    expect(elegirTipo('cuenca')).toHaveLength(0)
+  })
+
+  it('limpiar devuelve el selector a Todos', () => {
+    const b = crearBuscador(contenedor, conPozos, () => {})
+    escribir('ypf')
+    elegirTipo('sigla')
+    b.limpiar()
+    expect(contenedor.querySelector('.buscador__tipo-sel').value).toBe('todos')
+    expect(contenedor.querySelectorAll('.buscador__opcion')).toHaveLength(0)
+  })
+
+  it('rotula la sigla como Pozo, no como el nombre de la columna', () => {
+    crearBuscador(contenedor, conPozos, () => {})
+    escribir('ypf')
+    const tipos = elegirTipo('sigla').map((b) => b.querySelector('.buscador__tipo').textContent)
+    expect(tipos.every((t) => t === 'Pozo')).toBe(true)
+  })
+})

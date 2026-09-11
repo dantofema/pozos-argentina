@@ -1,7 +1,10 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { LITE } from '../lib/esquema.js'
-import { WMS, CAPAS_CONTEXTO } from './wms.js'
+import { WMS, CAPAS_CONTEXTO, ARGENMAP } from './capas.js'
+
+/** Vista de arranque: el país entero. */
+export const VISTA_INICIAL = { centro: [-40, -64], zoom: 4 }
 
 function capaWms(capa) {
   return L.tileLayer.wms(WMS, {
@@ -16,12 +19,10 @@ function capaWms(capa) {
 export function crearMapa(contenedor) {
   // preferCanvas: con una cuenca entera (33k+ pozos) un <path> SVG por marcador
   // traba el paneo; canvas reposiciona todo en un solo elemento.
-  const mapa = L.map(contenedor, { preferCanvas: true }).setView([-38.5, -68.5], 6)
+  const mapa = L.map(contenedor, { preferCanvas: true })
+    .setView(VISTA_INICIAL.centro, VISTA_INICIAL.zoom)
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 18,
-  }).addTo(mapa)
+  L.tileLayer(ARGENMAP.url, ARGENMAP.opciones).addTo(mapa)
 
   const contexto = Object.fromEntries(
     Object.entries(CAPAS_CONTEXTO).map(([etiqueta, capa]) => [etiqueta, capaWms(capa)])
@@ -30,7 +31,77 @@ export function crearMapa(contenedor) {
 
   const grupoPozos = L.layerGroup().addTo(mapa)
   let alDibujarCallback = null
-  let dibujoHabilitado = false
+  let alCambiarDibujo = null
+
+  // --- Dibujo de zona -------------------------------------------------------
+  // Se arma con un botón y después se arrastra sin tecla modificadora. Antes era
+  // shift + arrastrar: además de indescubrible, no funcionaba con un mouse real,
+  // porque sin cancelar el comportamiento por defecto el navegador arranca una
+  // selección de texto que se come el gesto. Leaflet hace lo mismo en su BoxZoom.
+  let armado = false
+  let inicio = null
+  let rectangulo = null
+
+  function limpiarGesto() {
+    inicio = null
+    if (rectangulo) { rectangulo.remove(); rectangulo = null }
+    L.DomEvent.off(document, 'mousemove', alMover)
+    L.DomEvent.off(document, 'mouseup', alSoltar)
+    L.DomUtil.enableTextSelection()
+    L.DomUtil.enableImageDrag()
+  }
+
+  function alMover(e) {
+    if (!inicio) return
+    if (rectangulo) rectangulo.remove()
+    rectangulo = L.rectangle(L.latLngBounds(inicio, mapa.mouseEventToLatLng(e)), {
+      color: '#0369A1', weight: 1, fillOpacity: 0.08,
+    }).addTo(mapa)
+  }
+
+  function alSoltar(e) {
+    if (!inicio) return
+    const limites = L.latLngBounds(inicio, mapa.mouseEventToLatLng(e))
+    limpiarGesto()
+    desarmar()
+
+    // Un click sin arrastrar no es una zona.
+    if (limites.getWest() === limites.getEast() || limites.getSouth() === limites.getNorth()) return
+
+    const o = limites.getWest(), es = limites.getEast()
+    const s = limites.getSouth(), n = limites.getNorth()
+    if (alDibujarCallback) alDibujarCallback([[o, s], [es, s], [es, n], [o, n]])
+  }
+
+  function alApretar(e) {
+    if (!armado || inicio) return
+    L.DomEvent.preventDefault(e.originalEvent)
+    L.DomUtil.disableTextSelection()
+    L.DomUtil.disableImageDrag()
+    inicio = e.latlng
+    L.DomEvent.on(document, 'mousemove', alMover)
+    L.DomEvent.on(document, 'mouseup', alSoltar)
+  }
+
+  function armar() {
+    if (armado) return
+    armado = true
+    mapa.dragging.disable()
+    mapa.boxZoom.disable()
+    L.DomUtil.addClass(contenedor, 'mapa--dibujando')
+    if (alCambiarDibujo) alCambiarDibujo(true)
+  }
+
+  function desarmar() {
+    if (!armado) return
+    armado = false
+    mapa.dragging.enable()
+    mapa.boxZoom.enable()
+    L.DomUtil.removeClass(contenedor, 'mapa--dibujando')
+    if (alCambiarDibujo) alCambiarDibujo(false)
+  }
+
+  mapa.on('mousedown', alApretar)
 
   return {
     mapa,
@@ -54,59 +125,29 @@ export function crearMapa(contenedor) {
       mapa.fitBounds(limites, { padding: [24, 24] })
     },
 
+    /** Vuelve a la vista de arranque, sin tocar el ámbito elegido. */
+    volverAlInicio() {
+      limpiarGesto()
+      desarmar()
+      mapa.setView(VISTA_INICIAL.centro, VISTA_INICIAL.zoom)
+    },
+
     alDibujar(callback) {
       alDibujarCallback = callback
     },
 
-    /**
-     * Dibujo de rectángulo: shift + arrastrar. Leaflet ya lo trae para zoom; acá se reusa.
-     * Sólo engancha handlers una vez: llamar dos veces sería aditivo y disparía
-     * `alDibujar` por duplicado en cada gesto.
-     */
-    habilitarDibujo() {
-      if (dibujoHabilitado) return
-      dibujoHabilitado = true
+    /** Avisa cuándo el modo dibujo se arma o se desarma, para reflejarlo en el botón. */
+    alCambiarModoDibujo(callback) {
+      alCambiarDibujo = callback
+    },
 
-      mapa.boxZoom.disable()
-      let inicio = null
-      let rectangulo = null
+    /** Arma o desarma el modo dibujo. Se desarma solo al terminar un gesto. */
+    alternarDibujo() {
+      if (armado) { limpiarGesto(); desarmar() } else { armar() }
+    },
 
-      // mousemove/mouseup del arrastre se siguen sobre document (no sobre el
-      // contenedor del mapa), igual que el Draggable interno de Leaflet: si el
-      // botón se suelta fuera del mapa, el mouseup del contenedor nunca llega,
-      // `inicio` queda seteado para siempre y `dragging` no se reactiva más.
-      function alMover(e) {
-        if (!inicio) return
-        if (rectangulo) rectangulo.remove()
-        const actual = mapa.mouseEventToLatLng(e)
-        rectangulo = L.rectangle(L.latLngBounds(inicio, actual), {
-          color: '#0369A1', weight: 1, fillOpacity: 0.08,
-        }).addTo(mapa)
-      }
-
-      function alSoltar(e) {
-        if (!inicio) return
-        const actual = mapa.mouseEventToLatLng(e)
-        const limites = L.latLngBounds(inicio, actual)
-        inicio = null
-        mapa.dragging.enable()
-        L.DomEvent.off(document, 'mousemove', alMover)
-        L.DomEvent.off(document, 'mouseup', alSoltar)
-        if (rectangulo) { rectangulo.remove(); rectangulo = null }
-        const o = limites.getWest(), es = limites.getEast()
-        const s = limites.getSouth(), n = limites.getNorth()
-        const anillo = [[o, s], [es, s], [es, n], [o, n]]
-        if (alDibujarCallback) alDibujarCallback(anillo)
-      }
-
-      mapa.on('mousedown', (e) => {
-        if (!e.originalEvent.shiftKey) return
-        if (inicio) return // gesto ya en curso
-        inicio = e.latlng
-        mapa.dragging.disable()
-        L.DomEvent.on(document, 'mousemove', alMover)
-        L.DomEvent.on(document, 'mouseup', alSoltar)
-      })
+    estaDibujando() {
+      return armado
     },
   }
 }
