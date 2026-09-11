@@ -31,7 +31,7 @@ export async function sql(consulta, { reintentos = 3, timeoutMs = 150000 } = {})
       clearTimeout(corte)
     }
   }
-  throw new Error(`Falló la consulta tras ${reintentos} intentos: ${ultimoError.message}`)
+  throw new Error(`Falló la consulta tras ${reintentos} intentos: ${ultimoError.message}`, { cause: ultimoError })
 }
 
 /** Devuelve un paquete CKAN por su nombre. */
