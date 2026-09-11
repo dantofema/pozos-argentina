@@ -68,4 +68,17 @@ describe('cuencasDe', () => {
   it('ignora ids que no están en el catálogo', () => {
     expect(cuencasDe(catalogo, [999])).toEqual([])
   })
+
+  it('ignora índices de cuenca fuera de rango', () => {
+    const catalogoBroto = {
+      dicts: {
+        cuenca: ['NEUQUINA'],
+      },
+      rows: [
+        [1, -68.6, -38.3, 0, 0, 0, 0],
+        [2, -68.7, -38.4, 0, 0, 0, 99], // Índice 99 no existe en dicts.cuenca
+      ],
+    }
+    expect(cuencasDe(catalogoBroto, [1, 2])).toEqual(['NEUQUINA'])
+  })
 })

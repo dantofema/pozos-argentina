@@ -43,7 +43,9 @@ export function cuencasDe(catalogo, ids) {
   for (const id of ids) {
     const fila = catalogo.porId?.get(id) ?? catalogo.rows.find((f) => f[LITE.ID] === id)
     if (!fila) continue
-    cuencas.add(catalogo.dicts.cuenca[fila[LITE.CUENCA]])
+    const cuenca = catalogo.dicts.cuenca[fila[LITE.CUENCA]]
+    if (!cuenca) continue
+    cuencas.add(cuenca)
   }
   return [...cuencas]
 }
