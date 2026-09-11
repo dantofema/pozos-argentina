@@ -66,17 +66,21 @@ describe('construirArtefactos', () => {
     expect([...full.keys()].sort()).toEqual(['GOLFO SAN JORGE', 'NEUQUINA'])
   })
 
-  it('el lite y el full comparten los mismos diccionarios', () => {
-    const { lite, full } = construirArtefactos(pozos, agregados)
-    const filaLite = lite.rows.find((r) => r[LITE.ID] === 212)
-    const filaFull = full.get('GOLFO SAN JORGE').rows[0]
-    // Verifica que ambos resuelven con el mismo diccionario
-    expect(lite.dicts.empresa[filaLite[LITE.EMPRESA]]).toBe('YPF S.A.')
-    expect(lite.dicts.empresa[filaFull[FULL.EMPRESA]]).toBe('YPF S.A.')
-    // Verifica identidad de referencia: es el mismo objeto
-    expect(lite.dicts.empresa).toBe(lite.dicts.empresa)
-    // Verifica que el diccionario en full vinculado por EMPRESA es exacto
-    expect(filaLite[LITE.EMPRESA]).toBe(filaFull[FULL.EMPRESA])
+  it('un índice del full resuelve al valor correcto contra el diccionario del lite', () => {
+    // Dos pozos con empresas distintas, cada uno en una cuenca distinta. Si el
+    // full armara diccionarios por partición, el de NEUQUINA numeraría desde
+    // cero y su índice de empresa resolvería al valor de la otra cuenca.
+    const dos = [
+      { ...pozos[0], idpozo: '212', empresa: 'PRIMERA S.A.', cuenca: 'GOLFO SAN JORGE' },
+      { ...pozos[1], idpozo: '999', empresa: 'SEGUNDA S.A.', cuenca: 'NEUQUINA' },
+    ]
+    const { lite, full } = construirArtefactos(dos, new Map())
+
+    const enNeuquina = full.get('NEUQUINA').rows[0]
+    expect(lite.dicts.empresa[enNeuquina[FULL.EMPRESA]]).toBe('SEGUNDA S.A.')
+
+    const enGolfo = full.get('GOLFO SAN JORGE').rows[0]
+    expect(lite.dicts.empresa[enGolfo[FULL.EMPRESA]]).toBe('PRIMERA S.A.')
   })
 
   it('un agregado con campo faltante produce cero, no NaN', () => {
