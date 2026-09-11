@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFile } from 'node:fs/promises'
-import { candidatosDelPaquete, elegirPorAnio } from './recursos.mjs'
+
+vi.mock('./ckan.mjs', () => ({
+  paquete: vi.fn(),
+  sql: vi.fn(),
+  existeRecurso: vi.fn(),
+}))
+
+import { candidatosDelPaquete, elegirPorAnio, resolverRecursos } from './recursos.mjs'
+import { paquete, sql, existeRecurso } from './ckan.mjs'
 
 const candidatos = JSON.parse(
   await readFile(new URL('../../tests/fixtures/recursos-candidatos.json', import.meta.url))
@@ -53,7 +61,7 @@ describe('elegirPorAnio', () => {
     expect(elegido2026.nombre).not.toMatch(/DDJJ/i)
   })
 
-  it('ignora los candidatos cuya tabla no existe', () => {
+  it('elige el recurso con filas por sobre el que tiene cero', () => {
     const elegidos = elegirPorAnio([
       { anio: 2024, id: 'roto', nombre: 'roto', filas: 0 },
       { anio: 2024, id: 'sano', nombre: 'sano', filas: 500 },
@@ -91,5 +99,89 @@ describe('candidatosDelPaquete', () => {
   it('descarta las variantes DDJJ abiertas y cerradas', () => {
     const r = candidatosDelPaquete(paqueteFalso, 2018, 2026)
     expect(r.map((x) => x.id)).not.toContain('e')
+  })
+})
+
+describe('resolverRecursos', () => {
+  // Mockea el borde de red (ckan.mjs): no se prueba la red, se prueba si
+  // resolverRecursos aborta o no ante cada situación del origen.
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  const recurso = (anio, id) => ({
+    id,
+    name: `Producción de Pozos de Gas y Petróleo - ${anio}`,
+    datastore_active: true,
+  })
+
+  it('devuelve un recurso por año cuando el catálogo está completo, ordenado del año más nuevo al más viejo', async () => {
+    paquete.mockResolvedValue({
+      resources: [recurso(2023, 'r2023'), recurso(2024, 'r2024'), recurso(2025, 'r2025')],
+    })
+    existeRecurso.mockResolvedValue(true)
+    sql.mockResolvedValue([{ n: 300000 }])
+
+    const resultado = await resolverRecursos({ anioDesde: 2023, anioHasta: 2025 })
+
+    expect(resultado.map((r) => r.anio)).toEqual([2025, 2024, 2023])
+  })
+
+  it('lanza cuando falta un año del rango pedido, y el mensaje nombra el año que falta', async () => {
+    paquete.mockResolvedValue({
+      resources: [recurso(2023, 'r2023'), recurso(2025, 'r2025')],
+    })
+    existeRecurso.mockResolvedValue(true)
+    sql.mockResolvedValue([{ n: 300000 }])
+
+    await expect(resolverRecursos({ anioDesde: 2023, anioHasta: 2025 }))
+      .rejects.toThrow(/Faltan.*2024/)
+  })
+
+  it('lanza cuando el paquete no trae ningún recurso de producción', async () => {
+    paquete.mockResolvedValue({ resources: [] })
+
+    await expect(resolverRecursos({ anioDesde: 2023, anioHasta: 2025 }))
+      .rejects.toThrow(/no trajo recursos de producción/)
+  })
+
+  it('saltea los recursos cuya tabla no existe y, si eso deja un año sin recurso, lanza', async () => {
+    paquete.mockResolvedValue({
+      resources: [recurso(2023, 'r2023'), recurso(2024, 'r2024')],
+    })
+    existeRecurso.mockImplementation(async (id) => id !== 'r2024')
+    sql.mockResolvedValue([{ n: 300000 }])
+
+    await expect(resolverRecursos({ anioDesde: 2023, anioHasta: 2024 }))
+      .rejects.toThrow(/Faltan.*2024/)
+  })
+
+  it('aplica el piso de filas a los años cerrados', async () => {
+    paquete.mockResolvedValue({
+      resources: [recurso(2023, 'r2023'), recurso(2024, 'r2024')],
+    })
+    existeRecurso.mockResolvedValue(true)
+    sql.mockImplementation(async (consulta) => {
+      const [, id] = /FROM "(.+)"/.exec(consulta)
+      return [{ n: id === 'r2023' ? 100000 : 300000 }]
+    })
+
+    await expect(resolverRecursos({ anioDesde: 2023, anioHasta: 2024 }))
+      .rejects.toThrow(/producción 2023/)
+  })
+
+  it('exime del piso al año en curso', async () => {
+    paquete.mockResolvedValue({
+      resources: [recurso(2023, 'r2023'), recurso(2024, 'r2024')],
+    })
+    existeRecurso.mockResolvedValue(true)
+    sql.mockImplementation(async (consulta) => {
+      const [, id] = /FROM "(.+)"/.exec(consulta)
+      return [{ n: id === 'r2024' ? 1000 : 300000 }]
+    })
+
+    const resultado = await resolverRecursos({ anioDesde: 2023, anioHasta: 2024 })
+
+    expect(resultado.find((r) => r.anio === 2024).filas).toBe(1000)
   })
 })

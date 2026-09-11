@@ -2,7 +2,7 @@ import { paquete, sql, existeRecurso } from './ckan.mjs'
 import { assertMinFilas } from './guardas.mjs'
 import { PAQUETE_PRODUCCION } from '../../src/lib/esquema.js'
 
-/** Piso de filas para un año completo. El más flaco medido rondó las 500.000. */
+/** Piso de filas para un año completo. El año cerrado más flaco medido fue 2018, con 932.835 filas. */
 const MIN_FILAS_ANIO = 200000
 
 /**
