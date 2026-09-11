@@ -12,6 +12,21 @@ export const COLUMNAS_DICT = [
   'provincia', 'tipo_recurso', 'tipoestado', 'formacion',
 ]
 
+/** Tipos de faceta buscables. */
+export const TIPOS_FACETA = ['area', 'yacimiento', 'empresa']
+
+/**
+ * Si la cuenca acota o no a ese tipo de faceta.
+ *
+ * Dos yacimientos —o dos áreas— con el mismo nombre en cuencas distintas son
+ * cosas distintas y se separan. Una operadora que trabaja en varias cuencas es
+ * una sola operadora y se pide entera: partirla dejaría imposible pedir "toda
+ * YPF". Esta es la única definición de esa regla; todo lo demás la consulta.
+ */
+export function admiteCuenca(tipo) {
+  return tipo === 'area' || tipo === 'yacimiento'
+}
+
 /** Posición de cada campo en una fila de `pozos-lite.json`. */
 export const LITE = {
   ID: 0, LON: 1, LAT: 2, AREA: 3, YACIMIENTO: 4, EMPRESA: 5, CUENCA: 6,

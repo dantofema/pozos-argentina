@@ -1,4 +1,4 @@
-import { LITE } from './esquema.js'
+import { LITE, admiteCuenca } from './esquema.js'
 
 const COLUMNA_POR_TIPO = {
   area: LITE.AREA,
@@ -35,7 +35,7 @@ export function porFaceta(catalogo, tipo, valor, cuenca) {
   const indice = catalogo.dicts[tipo].indexOf(valor)
   if (indice === -1) return []
 
-  const acota = cuenca != null && tipo !== 'empresa'
+  const acota = cuenca != null && admiteCuenca(tipo)
   const indiceCuenca = acota ? catalogo.dicts.cuenca.indexOf(cuenca) : -1
   if (acota && indiceCuenca === -1) return []
 

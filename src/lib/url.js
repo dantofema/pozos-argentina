@@ -1,4 +1,5 @@
-const TIPOS = ['area', 'yacimiento', 'empresa']
+import { TIPOS_FACETA, admiteCuenca } from './esquema.js'
+
 const VACIO = { modo: 'vacio', tipo: null, valor: null, cuenca: null, poligono: null }
 
 function parsearPoligono(texto) {
@@ -17,10 +18,13 @@ export function leerEstado(busqueda) {
 
   const tipo = p.get('t')
   const valor = p.get('v')
-  if (tipo && valor && TIPOS.includes(tipo)) {
+  if (tipo && valor && TIPOS_FACETA.includes(tipo)) {
     // `c` es opcional: un enlace anterior a la desambiguación por cuenca sigue
-    // siendo válido y resuelve a la unión de todas las cuencas.
-    return { modo: 'faceta', tipo, valor, cuenca: p.get('c') || null, poligono: null }
+    // siendo válido y resuelve a la unión de todas las cuencas. Y se ignora en
+    // los tipos que no la admiten, para que una URL a mano no pueda etiquetar
+    // como acotada a una cuenca una descarga que en realidad trae toda la empresa.
+    const cuenca = admiteCuenca(tipo) ? p.get('c') || null : null
+    return { modo: 'faceta', tipo, valor, cuenca, poligono: null }
   }
 
   const crudo = p.get('p')
@@ -38,7 +42,7 @@ export function escribirEstado(estado) {
       return ''
     }
     const p = new URLSearchParams({ t: estado.tipo, v: estado.valor })
-    if (estado.cuenca) p.set('c', estado.cuenca)
+    if (estado.cuenca && admiteCuenca(estado.tipo)) p.set('c', estado.cuenca)
     return `?${p.toString()}`
   }
   if (estado.modo === 'poligono') {

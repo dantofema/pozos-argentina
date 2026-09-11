@@ -1,11 +1,17 @@
-import { LITE } from './esquema.js'
+import { LITE, TIPOS_FACETA, admiteCuenca } from './esquema.js'
 
 /** Tipos de faceta buscables, y la posición de su índice en una fila lite. */
-const FACETAS = [
-  { tipo: 'area', columna: LITE.AREA, porCuenca: true },
-  { tipo: 'yacimiento', columna: LITE.YACIMIENTO, porCuenca: true },
-  { tipo: 'empresa', columna: LITE.EMPRESA, porCuenca: false },
-]
+const COLUMNA_POR_TIPO = {
+  area: LITE.AREA,
+  yacimiento: LITE.YACIMIENTO,
+  empresa: LITE.EMPRESA,
+}
+
+const FACETAS = TIPOS_FACETA.map((tipo) => ({
+  tipo,
+  columna: COLUMNA_POR_TIPO[tipo],
+  porCuenca: admiteCuenca(tipo),
+}))
 
 export function normalizar(texto) {
   return String(texto ?? '')

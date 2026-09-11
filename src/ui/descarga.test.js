@@ -127,3 +127,12 @@ describe('nombreArchivo con cuenca', () => {
     expect(a).not.toBe(b)
   })
 })
+
+describe('nombreArchivo y la operadora', () => {
+  it('no etiqueta con cuenca una descarga de empresa venida de una URL a mano', async () => {
+    const { leerEstado } = await import('../lib/url.js')
+    const estado = leerEstado('?t=empresa&v=YPF+S.A.&c=AUSTRAL')
+    // Si el nombre dijera "austral" mentiría: la descarga trae toda la empresa.
+    expect(nombreArchivo(estado)).toBe('pozos-empresa-ypf-s-a.csv')
+  })
+})

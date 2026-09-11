@@ -55,4 +55,12 @@ describe('crearBuscador', () => {
     expect(boton.querySelector('img')).toBeNull()
     expect(boton.querySelector('.buscador__valor').textContent).toBe('<img src=x onerror=alert(1)>')
   })
+
+  it('escapa también la cuenca, que viene del mismo dato', () => {
+    const malicioso = [{ tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: '<img src=x onerror=alert(1)>', indice: 0, cantidad: 1, buscable: 'el tordillo' }]
+    crearBuscador(contenedor, malicioso, () => {})
+    const [boton] = escribir('tordillo')
+    expect(boton.querySelector('img')).toBeNull()
+    expect(boton.querySelector('.buscador__cuenca').textContent).toBe('<img src=x onerror=alert(1)>')
+  })
 })

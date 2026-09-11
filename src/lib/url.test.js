@@ -117,3 +117,17 @@ describe('cuenca en la URL', () => {
     expect(leerEstado('?c=AUSTRAL').modo).toBe('vacio')
   })
 })
+
+describe('la cuenca no se aplica a la operadora', () => {
+  it('ignora c en una URL a mano con tipo empresa', () => {
+    const e = leerEstado('?t=empresa&v=YPF+S.A.&c=AUSTRAL')
+    expect(e.tipo).toBe('empresa')
+    expect(e.valor).toBe('YPF S.A.')
+    expect(e.cuenca).toBeNull()
+  })
+
+  it('no escribe c aunque el estado traiga cuenca en una empresa', () => {
+    expect(escribirEstado({ modo: 'faceta', tipo: 'empresa', valor: 'YPF S.A.', cuenca: 'AUSTRAL' }))
+      .toBe('?t=empresa&v=YPF+S.A.')
+  })
+})
