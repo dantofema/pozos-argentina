@@ -29,11 +29,15 @@ function contenedorMedido() {
 const evento = (x, y) => ({ clientX: x, clientY: y, bubbles: true, cancelable: true, button: 0, which: 1 })
 
 let contenedor
+let afuera
 let m
 
 beforeEach(() => {
   document.body.innerHTML = ''
   contenedor = contenedorMedido()
+  // Un elemento fuera del mapa, para el gesto que termina afuera.
+  afuera = document.createElement('div')
+  document.body.appendChild(afuera)
   // SVG y no canvas: jsdom no tiene contexto 2D. La lógica de limpieza que se
   // prueba acá no depende del renderer.
   m = crearMapa(contenedor, { preferCanvas: false })
@@ -42,9 +46,21 @@ beforeEach(() => {
 function apretar(x, y) {
   contenedor.dispatchEvent(new MouseEvent('mousedown', evento(x, y)))
 }
-function moverYsoltar(x, y) {
-  document.dispatchEvent(new MouseEvent('mousemove', evento(x, y)))
-  document.dispatchEvent(new MouseEvent('mouseup', evento(x, y)))
+/**
+ * Los eventos van sobre un elemento real y burbujean hasta `document`, que es
+ * donde escucha el gesto. Despacharlos sobre `document` directamente deja
+ * `event.target` en el documento, y el Draggable interno de Leaflet —que
+ * también escucha ahí— explota al intentar sacarle una clase.
+ */
+function mover(x, y, destino = contenedor) {
+  destino.dispatchEvent(new MouseEvent('mousemove', evento(x, y)))
+}
+function soltar(x, y, destino = contenedor) {
+  destino.dispatchEvent(new MouseEvent('mouseup', evento(x, y)))
+}
+function moverYsoltar(x, y, destino = contenedor) {
+  mover(x, y, destino)
+  soltar(x, y, destino)
 }
 // Se cuenta por tipo y no el total de capas: el renderer se agrega como capa en
 // el primer vector y se queda ahí, así que el total nunca vuelve al valor
@@ -110,18 +126,18 @@ describe('modo dibujo', () => {
   it('no deja rectángulo fantasma después del gesto', () => {
     m.alternarDibujo()
     apretar(100, 100)
-    document.dispatchEvent(new MouseEvent('mousemove', evento(200, 200)))
+    mover(200, 200)
     expect(rectangulos()).toBe(1) // se va dibujando mientras arrastrás
-    document.dispatchEvent(new MouseEvent('mousemove', evento(300, 300)))
+    mover(300, 300)
     expect(rectangulos()).toBe(1) // y se reemplaza, no se acumula
-    document.dispatchEvent(new MouseEvent('mouseup', evento(300, 300)))
+    soltar(300, 300)
     expect(rectangulos()).toBe(0)
   })
 
   it('volver al inicio a mitad de un gesto limpia todo', () => {
     m.alternarDibujo()
     apretar(100, 100)
-    document.dispatchEvent(new MouseEvent('mousemove', evento(250, 250)))
+    mover(250, 250)
 
     expect(rectangulos()).toBe(1)
 
@@ -132,7 +148,7 @@ describe('modo dibujo', () => {
     expect(rectangulos()).toBe(0)
   })
 
-  it('tras cancelar, los listeners del documento ya no responden', () => {
+  it('cancelar a mitad del gesto lo aborta: soltar después no dibuja nada', () => {
     const alDibujar = vi.fn()
     m.alDibujar(alDibujar)
     m.alternarDibujo()
@@ -141,6 +157,39 @@ describe('modo dibujo', () => {
     moverYsoltar(300, 300)
     expect(alDibujar).not.toHaveBeenCalled()
   })
+
+  it('el gesto termina aunque se suelte el botón fuera del mapa', () => {
+    const alDibujar = vi.fn()
+    m.alDibujar(alDibujar)
+    m.alternarDibujo()
+    apretar(100, 100)
+    mover(300, 300)
+    soltar(900, 700, afuera) // el mouseup ocurre fuera del contenedor del mapa
+
+    expect(alDibujar).toHaveBeenCalledTimes(1)
+    expect(m.estaDibujando()).toBe(false)
+    expect(m.mapa.dragging.enabled()).toBe(true)
+    expect(rectangulos()).toBe(0)
+  })
+
+  it('cada gesto dispara exactamente una vez', () => {
+    const alDibujar = vi.fn()
+    m.alDibujar(alDibujar)
+    for (const desde of [100, 150]) {
+      m.alternarDibujo()
+      apretar(desde, desde)
+      moverYsoltar(desde + 200, desde + 200)
+    }
+    expect(alDibujar).toHaveBeenCalledTimes(2)
+  })
+
+  // Nota: que `limpiarGesto` desenganche sus listeners de `document` no se
+  // puede testear desde afuera. `L.DomEvent.on` es idempotente, así que sin el
+  // `off` tampoco se acumulan, y `alMover`/`alSoltar` salen temprano cuando no
+  // hay gesto en curso: el comportamiento observable es idéntico con y sin esa
+  // limpieza. Se verificó por mutación. Los `off` se quedan por higiene —no
+  // dejar listeners colgados de por vida—, no porque haya un test que los
+  // cubra, y se prefiere decirlo a escribir un test que finja cubrirlos.
 
   it('avisa cada vez que el modo se arma o se desarma', () => {
     const cambios = []
