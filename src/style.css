@@ -13,7 +13,10 @@
 body {
   margin: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  /* Tres hijos, porque #app usa display:contents: cabecera, panel y mapa. El
+     1fr va al mapa, que es lo que debe absorber el espacio libre; con sólo dos
+     filas se lo quedaba el panel y el mapa desbordaba abajo. */
+  grid-template-rows: auto auto 1fr;
   min-height: 100vh;
   background: var(--papel);
   color: var(--tinta);
