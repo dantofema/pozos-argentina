@@ -1,11 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
 import { nombreArchivoCuenca, cargarDetalle } from './detalle.js'
 import { nombreArchivoCuenca as nombreDelBuild } from '../../scripts/lib/artefactos.mjs'
 
 // Los 10 nombres de cuencas reales. Esta lista es la fuente de verdad para el test
-// y funciona sin dependencia en artefactos generados.
+// y no requiere artefactos generados. Cubre acentos, Ñ, espacios y nombres compuestos.
 const cuencasReales = [
   'GOLFO SAN JORGE',
   'NEUQUINA',
@@ -19,27 +17,6 @@ const cuencasReales = [
   'ÑIRIHUAU',
 ]
 
-// Intenta leer el manifiesto generado (opcional). Si existe, agrega sus nombres
-// al conjunto de prueba; si no existe, el test sigue con la lista fija.
-function obtenerCuencasAProbar() {
-  const cuencas = [...cuencasReales]
-  try {
-    const manifestoPath = resolve(import.meta.url, '../../public/manifiesto.json')
-    const contenido = readFileSync(manifestoPath, 'utf-8')
-    const manifiesto = JSON.parse(contenido)
-    if (manifiesto.cuencas && Array.isArray(manifiesto.cuencas)) {
-      for (const { cuenca } of manifiesto.cuencas) {
-        if (!cuencas.includes(cuenca)) {
-          cuencas.push(cuenca)
-        }
-      }
-    }
-  } catch {
-    // Si falta el manifiesto o no se puede leer, seguimos con la lista fija
-  }
-  return cuencas
-}
-
 describe('nombreArchivoCuenca - equivalencia con build', () => {
   it('dos casos fijos del build: GOLFO SAN JORGE', () => {
     expect(nombreArchivoCuenca('GOLFO SAN JORGE')).toBe(nombreDelBuild('GOLFO SAN JORGE'))
@@ -52,14 +29,10 @@ describe('nombreArchivoCuenca - equivalencia con build', () => {
   })
 
   it('todos los nombres de cuencas producen el mismo resultado en ambas copias', () => {
-    const cuencas = obtenerCuencasAProbar()
-    for (const cuenca of cuencas) {
+    for (const cuenca of cuencasReales) {
       const delNavegador = nombreArchivoCuenca(cuenca)
       const delBuild = nombreDelBuild(cuenca)
-      expect(delNavegador).toBe(delBuild)
-      if (delNavegador !== delBuild) {
-        console.error(`Divergencia en "${cuenca}": navegador=${delNavegador}, build=${delBuild}`)
-      }
+      expect({ cuenca, nombre: delNavegador }).toEqual({ cuenca, nombre: delBuild })
     }
   })
 })
