@@ -4,10 +4,11 @@ Buscá pozos de hidrocarburos de Argentina por área de concesión, yacimiento, 
 dibujando sobre el mapa, y bajate un CSV con una fila por pozo: su ficha completa más el
 resumen de producción acumulada.
 
-Sitio estático: no hay backend. Los datos salen del portal de datos abiertos de la Secretaría
-de Energía (`datos.energia.gob.ar`), cuyo DataStore acepta SQL y expone CORS abierto. El cruce
-entre la ficha del pozo y su producción mensual lo resuelve una sola consulta, del lado del
-servidor.
+Sitio estático: no hay backend en producción. Los datos salen del portal de datos abiertos de
+la Secretaría de Energía (`datos.energia.gob.ar`), cuyo DataStore acepta SQL. Un build en Node
+baja la ficha de cada pozo y agrega su producción mensual con consultas separadas contra ese
+DataStore, y arma el cruce entre ambas (ver [reglas de datos](docs/reglas/datos.md)) antes de
+dejar el resultado en `public/` para que el sitio lo sirva sin volver a tocar el origen.
 
 Este sitio no es oficial ni representa a la Secretaría de Energía.
 
@@ -15,4 +16,19 @@ Este sitio no es oficial ni representa a la Secretaría de Energía.
 
 ## Estado
 
-Diseño aprobado. Sin implementar todavía.
+Funcionando. El sitio busca sobre 85.611 pozos, los pinta en el mapa y arma el CSV en
+el navegador. No hace ninguna llamada al origen: todo sale de artefactos generados por
+`npm run build:index`.
+
+## Cómo se usa
+
+```bash
+npm install
+npm run build:index   # baja del origen y arma public/ — tarda varios minutos
+npm run dev
+```
+
+`npm test` corre los tests unitarios, sin red. `npm run test:contrato` pega contra el
+origen vivo para verificar que nada cambió del otro lado.
+
+Las reglas de datos están en [`docs/reglas/datos.md`](docs/reglas/datos.md).
