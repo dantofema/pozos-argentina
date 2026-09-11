@@ -2,9 +2,9 @@ import { LITE } from './esquema.js'
 
 /** Tipos de faceta buscables, y la posición de su índice en una fila lite. */
 const FACETAS = [
-  { tipo: 'area', columna: LITE.AREA },
-  { tipo: 'yacimiento', columna: LITE.YACIMIENTO },
-  { tipo: 'empresa', columna: LITE.EMPRESA },
+  { tipo: 'area', columna: LITE.AREA, porCuenca: true },
+  { tipo: 'yacimiento', columna: LITE.YACIMIENTO, porCuenca: true },
+  { tipo: 'empresa', columna: LITE.EMPRESA, porCuenca: false },
 ]
 
 export function normalizar(texto) {
@@ -28,16 +28,22 @@ export async function cargarCatalogo(base = import.meta.env.BASE_URL) {
 /** Arma la lista buscable, con la cantidad de pozos de cada valor. */
 export function construirFacetas(catalogo) {
   const salida = []
-  for (const { tipo, columna } of FACETAS) {
+  for (const { tipo, columna, porCuenca } of FACETAS) {
     const cuenta = new Map()
     for (const fila of catalogo.rows) {
-      const i = fila[columna]
-      cuenta.set(i, (cuenta.get(i) ?? 0) + 1)
+      // Un yacimiento o un área con el mismo nombre en dos cuencas son dos cosas
+      // distintas y se cuentan por separado. Una operadora no: trabaja en varias
+      // cuencas y se pide entera.
+      const clave = porCuenca ? `${fila[columna]}|${fila[LITE.CUENCA]}` : `${fila[columna]}|`
+      cuenta.set(clave, (cuenta.get(clave) ?? 0) + 1)
     }
-    for (const [indice, cantidad] of cuenta) {
+    for (const [clave, cantidad] of cuenta) {
+      const [textoIndice, textoCuenca] = clave.split('|')
+      const indice = Number(textoIndice)
       const valor = catalogo.dicts[tipo][indice]
       if (!valor) continue
-      salida.push({ tipo, valor, indice, cantidad, buscable: normalizar(valor) })
+      const cuenca = porCuenca ? catalogo.dicts.cuenca[Number(textoCuenca)] ?? null : null
+      salida.push({ tipo, valor, indice, cuenca, cantidad, buscable: normalizar(valor) })
     }
   }
   return salida

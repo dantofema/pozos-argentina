@@ -68,3 +68,47 @@ describe('buscar', () => {
     expect(buscar(facetas, '')).toEqual([])
   })
 })
+
+// Mismo nombre de yacimiento y de área en dos cuencas distintas, y una operadora
+// que trabaja en las dos: los dos primeros son ambigüedad, el tercero no.
+const catalogoHomonimo = {
+  dicts: {
+    area: ['JACHAL'],
+    yacimiento: ['EL TORDILLO'],
+    empresa: ['YPF S.A.'],
+    cuenca: ['GOLFO SAN JORGE', 'AUSTRAL'],
+  },
+  rows: [
+    [1, -67.5, -45.9, 0, 0, 0, 0],
+    [2, -67.6, -45.8, 0, 0, 0, 0],
+    [3, -69.0, -51.0, 0, 0, 0, 1],
+  ],
+}
+
+describe('construirFacetas con nombres homónimos', () => {
+  it('parte un yacimiento homónimo en una faceta por cuenca', () => {
+    const f = construirFacetas(catalogoHomonimo).filter((x) => x.tipo === 'yacimiento')
+    expect(f).toHaveLength(2)
+    expect(f.map((x) => x.cuenca).sort()).toEqual(['AUSTRAL', 'GOLFO SAN JORGE'])
+    expect(f.find((x) => x.cuenca === 'GOLFO SAN JORGE').cantidad).toBe(2)
+    expect(f.find((x) => x.cuenca === 'AUSTRAL').cantidad).toBe(1)
+  })
+
+  it('parte un área homónima en una faceta por cuenca', () => {
+    const f = construirFacetas(catalogoHomonimo).filter((x) => x.tipo === 'area')
+    expect(f).toHaveLength(2)
+    expect(f.map((x) => x.cuenca).sort()).toEqual(['AUSTRAL', 'GOLFO SAN JORGE'])
+  })
+
+  it('NO parte la operadora: una empresa trabaja en varias cuencas legítimamente', () => {
+    const f = construirFacetas(catalogoHomonimo).filter((x) => x.tipo === 'empresa')
+    expect(f).toHaveLength(1)
+    expect(f[0].cantidad).toBe(3)
+    expect(f[0].cuenca).toBeNull()
+  })
+
+  it('un yacimiento que vive en una sola cuenca igual lleva su cuenca', () => {
+    const f = construirFacetas(catalogo).filter((x) => x.tipo === 'yacimiento')
+    expect(f.every((x) => typeof x.cuenca === 'string')).toBe(true)
+  })
+})

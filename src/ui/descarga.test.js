@@ -109,3 +109,21 @@ describe('crearPanelDescarga', () => {
     expect(resumen.textContent).toBe('Ese ámbito no tiene pozos.')
   })
 })
+
+describe('nombreArchivo con cuenca', () => {
+  it('incluye la cuenca cuando la faceta la tiene', () => {
+    expect(nombreArchivo({ modo: 'faceta', tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL' }))
+      .toBe('pozos-yacimiento-el-tordillo-austral.csv')
+  })
+
+  it('sin cuenca mantiene el nombre de antes', () => {
+    expect(nombreArchivo({ modo: 'faceta', tipo: 'empresa', valor: 'YPF S.A.' }))
+      .toBe('pozos-empresa-ypf-s-a.csv')
+  })
+
+  it('dos yacimientos homónimos dan archivos distintos', () => {
+    const a = nombreArchivo({ modo: 'faceta', tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL' })
+    const b = nombreArchivo({ modo: 'faceta', tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'GOLFO SAN JORGE' })
+    expect(a).not.toBe(b)
+  })
+})

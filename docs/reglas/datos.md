@@ -72,25 +72,29 @@ para el año en curso —un acumulado que no es reproducible mes a mes y que no 
 comparar contra el resto de la serie. La homogeneidad de la serie completa pesa más que
 llegar al mes más reciente posible.
 
-## D6 — Los nombres de yacimiento y área se resuelven sin desambiguar por cuenca
+## D6 — Yacimiento y área se desambiguan por cuenca; la operadora no
 
-`porFaceta` (`src/lib/ambito.js`) busca una faceta por nombre contra el diccionario del
-catálogo y no distingue cuenca: si dos cuencas comparten el mismo nombre de yacimiento o de
-área, elegir ese nombre en el buscador trae los pozos de ambas mezclados.
+Dos cuencas pueden compartir el nombre de un yacimiento o de un área, y cuando eso pasa se
+trata de dos cosas distintas. El buscador las ofrece por separado, cada una con su cuenca a la
+vista, y el ámbito elegido viaja con la cuenca en la URL (`c`) para que un enlace compartido
+reproduzca exactamente lo mismo.
 
 Medido sobre el índice publicado: afecta a **25 nombres de yacimiento y 1 nombre de área,
-5.181 pozos en total, ≈6 % del padrón**. `EL TORDILLO` devuelve 1.621 pozos mezclando Golfo
-San Jorge y Austral; `CERRO NEGRO` mezcla tres cuencas (Golfo San Jorge, Austral, Neuquina);
+5.181 pozos, ≈6 % del padrón**. El caso que mejor lo explica es `EL TORDILLO`: son 1.621
+pozos, de los cuales **1.620 están en Golfo San Jorge y 1 solo en Austral**. Sin desambiguar,
+ese único pozo contaminaba silenciosamente una descarga de 1.620.
+
+**La operadora queda deliberadamente afuera de esta regla.** Una empresa que trabaja en varias
+cuencas no es una ambigüedad: es una empresa que trabaja en varias cuencas. Partirla dejaría
+imposible pedir "toda YPF". Son 16 nombres de empresa presentes en más de una cuenca y
+**48.037 pozos**, más de la mitad del padrón: tratarlos como homónimos habría sido el error
+opuesto y más grave. `porFaceta` ignora la cuenca cuando el tipo es `empresa`.
+
 `POZOS SIN YACIMIENTO` —un valor de relleno para el pozo sin yacimiento declarado, no un
-nombre de yacimiento real— aparece igual como opción buscable, con 513 pozos repartidos en
-cinco cuencas.
+nombre real— pasa a aparecer como cinco opciones, una por cuenca. No se lo trata como caso
+especial: es lo que dice el dato, y esconderlo dejaría 513 pozos sin ese eje de búsqueda.
 
-Se decidió no cambiar el comportamiento. Desambiguar por cuenca no es un cambio local: la
-cuenca tendría que viajar también en el estado de la URL (`src/lib/url.js`), porque si no un
-enlace compartido a `EL TORDILLO` sigue siendo ambiguo al abrirse. Eso encadena cambios en el
-catálogo, en la resolución de ámbito (`porFaceta`), en el buscador y en la URL —una
-refactorización estructural, no una corrección puntual. Queda como limitación conocida hasta
-que el dueño del producto decida si vale ese costo, con estos números delante.
-
-Mientras tanto, el CSV que se descarga trae una columna `cuenca` (ver `COLUMNAS_CSV` en
-`src/lib/esquema.js`), así que una descarga que mezcla cuencas es filtrable después.
+La cuenca es un filtro **opcional** en los tres puntos donde entra (`construirFacetas`,
+`porFaceta`, `leerEstado`). Un enlace anterior a esta desambiguación, sin el parámetro `c`,
+sigue siendo válido y resuelve a la unión de todas las cuencas: el comportamiento que tenía
+antes. No hay enlaces rotos.

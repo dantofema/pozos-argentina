@@ -44,7 +44,7 @@ try {
 
   async function aplicar(estado, { empujarHistorial = true } = {}) {
     const ids = estado.modo === 'faceta'
-      ? porFaceta(catalogo, estado.tipo, estado.valor)
+      ? porFaceta(catalogo, estado.tipo, estado.valor, estado.cuenca)
       : estado.modo === 'poligono'
         ? porPoligono(catalogo, estado.poligono)
         : []
@@ -70,9 +70,16 @@ try {
       history.pushState(estado, '', escribirEstado(estado) || location.pathname)
     }
 
-    const etiqueta = estado.modo === 'faceta' ? estado.valor : 'el recorte dibujado'
+    const etiqueta = estado.modo === 'faceta'
+      ? (estado.cuenca ? `${estado.valor} (${estado.cuenca})` : estado.valor)
+      : 'el recorte dibujado'
+    // Concordancia de número, y sin punto doble cuando la etiqueta ya termina en
+    // uno: varias operadoras se llaman "… S.A.".
+    const frase = `${ids.length.toLocaleString('es-AR')} ` +
+      `${ids.length === 1 ? 'pozo' : 'pozos'} en ${etiqueta}`
+
     panel.mostrar({
-      texto: `${ids.length.toLocaleString('es-AR')} pozos en ${etiqueta}.`,
+      texto: frase.endsWith('.') ? frase : `${frase}.`,
       alDescargar: async () => {
         const detalle = await cargarDetalle(cuencasDe(catalogo, ids))
         const filas = ids.map((id) => detalle.get(id)).filter(Boolean)
@@ -83,11 +90,17 @@ try {
   }
 
   crearBuscador(document.querySelector('#buscador'), facetas, (faceta) => {
-    aplicar({ modo: 'faceta', tipo: faceta.tipo, valor: faceta.valor, poligono: null })
+    aplicar({
+      modo: 'faceta',
+      tipo: faceta.tipo,
+      valor: faceta.valor,
+      cuenca: faceta.cuenca ?? null,
+      poligono: null,
+    })
   })
 
   mapa.alDibujar((anillo) => {
-    aplicar({ modo: 'poligono', tipo: null, valor: null, poligono: anillo })
+    aplicar({ modo: 'poligono', tipo: null, valor: null, cuenca: null, poligono: anillo })
   })
 
   window.addEventListener('popstate', () => {

@@ -1,5 +1,5 @@
 const TIPOS = ['area', 'yacimiento', 'empresa']
-const VACIO = { modo: 'vacio', tipo: null, valor: null, poligono: null }
+const VACIO = { modo: 'vacio', tipo: null, valor: null, cuenca: null, poligono: null }
 
 function parsearPoligono(texto) {
   const vertices = texto.split(';').map((par) => {
@@ -18,13 +18,15 @@ export function leerEstado(busqueda) {
   const tipo = p.get('t')
   const valor = p.get('v')
   if (tipo && valor && TIPOS.includes(tipo)) {
-    return { modo: 'faceta', tipo, valor, poligono: null }
+    // `c` es opcional: un enlace anterior a la desambiguación por cuenca sigue
+    // siendo válido y resuelve a la unión de todas las cuencas.
+    return { modo: 'faceta', tipo, valor, cuenca: p.get('c') || null, poligono: null }
   }
 
   const crudo = p.get('p')
   if (crudo) {
     const poligono = parsearPoligono(crudo)
-    if (poligono) return { modo: 'poligono', tipo: null, valor: null, poligono }
+    if (poligono) return { modo: 'poligono', tipo: null, valor: null, cuenca: null, poligono }
   }
 
   return { ...VACIO }
@@ -36,6 +38,7 @@ export function escribirEstado(estado) {
       return ''
     }
     const p = new URLSearchParams({ t: estado.tipo, v: estado.valor })
+    if (estado.cuenca) p.set('c', estado.cuenca)
     return `?${p.toString()}`
   }
   if (estado.modo === 'poligono') {

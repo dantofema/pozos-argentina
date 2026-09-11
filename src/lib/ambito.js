@@ -21,13 +21,27 @@ export function puntoEnPoligono(lon, lat, anillo) {
   return dentro
 }
 
-/** Ids de los pozos cuyo valor de faceta coincide. */
-export function porFaceta(catalogo, tipo, valor) {
+/**
+ * Ids de los pozos cuyo valor de faceta coincide.
+ *
+ * `cuenca` es opcional y sólo acota yacimiento y área, donde dos nombres iguales
+ * en cuencas distintas son cosas distintas. Una operadora se pide entera aunque
+ * trabaje en varias cuencas. Omitirla devuelve la unión, que es lo que hacen los
+ * enlaces anteriores a esta desambiguación.
+ */
+export function porFaceta(catalogo, tipo, valor, cuenca) {
   const columna = COLUMNA_POR_TIPO[tipo]
   if (columna === undefined) throw new Error(`Tipo de faceta desconocido: ${tipo}`)
   const indice = catalogo.dicts[tipo].indexOf(valor)
   if (indice === -1) return []
-  return catalogo.rows.filter((f) => f[columna] === indice).map((f) => f[LITE.ID])
+
+  const acota = cuenca != null && tipo !== 'empresa'
+  const indiceCuenca = acota ? catalogo.dicts.cuenca.indexOf(cuenca) : -1
+  if (acota && indiceCuenca === -1) return []
+
+  return catalogo.rows
+    .filter((f) => f[columna] === indice && (!acota || f[LITE.CUENCA] === indiceCuenca))
+    .map((f) => f[LITE.ID])
 }
 
 /** Ids de los pozos que caen dentro del anillo dibujado. */

@@ -24,8 +24,11 @@ export function crearBuscador(contenedor, facetas, alElegir) {
       boton.innerHTML =
         `<span class="buscador__tipo">${ETIQUETA[r.tipo]}</span>` +
         `<span class="buscador__valor"></span>` +
+        `<span class="buscador__cuenca"></span>` +
         `<span class="buscador__cantidad">${r.cantidad.toLocaleString('es-AR')} pozos</span>`
+      // textContent y no innerHTML: estos dos vienen del dato.
       boton.querySelector('.buscador__valor').textContent = r.valor
+      boton.querySelector('.buscador__cuenca').textContent = r.cuenca ?? ''
       boton.onclick = () => alElegir(r)
       li.appendChild(boton)
       lista.appendChild(li)

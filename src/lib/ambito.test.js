@@ -82,3 +82,41 @@ describe('cuencasDe', () => {
     expect(cuencasDe(catalogoBroto, [1, 2])).toEqual(['NEUQUINA'])
   })
 })
+
+const catalogoHomonimo = {
+  dicts: {
+    area: ['JACHAL'],
+    yacimiento: ['EL TORDILLO'],
+    empresa: ['YPF S.A.'],
+    cuenca: ['GOLFO SAN JORGE', 'AUSTRAL'],
+  },
+  rows: [
+    [1, -67.5, -45.9, 0, 0, 0, 0],
+    [2, -67.6, -45.8, 0, 0, 0, 0],
+    [3, -69.0, -51.0, 0, 0, 0, 1],
+  ],
+}
+
+describe('porFaceta acotada por cuenca', () => {
+  it('sin cuenca devuelve la unión, que es el comportamiento de los enlaces viejos', () => {
+    expect(porFaceta(catalogoHomonimo, 'yacimiento', 'EL TORDILLO').sort()).toEqual([1, 2, 3])
+  })
+
+  it('con cuenca devuelve sólo los pozos de esa cuenca', () => {
+    expect(porFaceta(catalogoHomonimo, 'yacimiento', 'EL TORDILLO', 'AUSTRAL')).toEqual([3])
+    expect(porFaceta(catalogoHomonimo, 'yacimiento', 'EL TORDILLO', 'GOLFO SAN JORGE').sort())
+      .toEqual([1, 2])
+  })
+
+  it('una cuenca donde ese valor no existe devuelve vacío, no la unión', () => {
+    expect(porFaceta(catalogoHomonimo, 'yacimiento', 'EL TORDILLO', 'NEUQUINA')).toEqual([])
+  })
+
+  it('una cuenca que no está en el diccionario devuelve vacío', () => {
+    expect(porFaceta(catalogoHomonimo, 'yacimiento', 'EL TORDILLO', 'NO EXISTE')).toEqual([])
+  })
+
+  it('la operadora ignora la cuenca: se pide toda la empresa', () => {
+    expect(porFaceta(catalogoHomonimo, 'empresa', 'YPF S.A.', 'AUSTRAL').sort()).toEqual([1, 2, 3])
+  })
+})

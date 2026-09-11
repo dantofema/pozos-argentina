@@ -5,7 +5,12 @@ function aRanura(texto) {
 }
 
 export function nombreArchivo(estado) {
-  if (estado.modo === 'faceta') return `pozos-${estado.tipo}-${aRanura(estado.valor)}.csv`
+  if (estado.modo === 'faceta') {
+    // La cuenca entra al nombre para que dos yacimientos homónimos no se pisen
+    // en la carpeta de descargas.
+    const base = `pozos-${estado.tipo}-${aRanura(estado.valor)}`
+    return estado.cuenca ? `${base}-${aRanura(estado.cuenca)}.csv` : `${base}.csv`
+  }
   if (estado.modo === 'poligono') return 'pozos-recorte.csv'
   return 'pozos.csv'
 }
