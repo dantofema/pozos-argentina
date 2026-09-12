@@ -175,15 +175,22 @@ composición e interfaz comparten una línea.
 ### 7.2 Bajo el horizonte: la columna de la cuenca Neuquina
 
 Las nueve formaciones, en el orden estratigráfico real —verificado contra la literatura:
-de abajo hacia arriba Lajas → Lotena → Tordillo → **Vaca Muerta** → Quintuco → Centenario
+de abajo hacia arriba Lajas → Lotena → Tordillo → **Vaca Muerta** → Quintuco → Mulichinco
 → Agrio → Huitrín → Rayoso— con su litología y su trama.
+
+Corregido el 2026-09-12: este spec decía **Centenario** en la posición 4. Está mal y la
+revisión de la Tarea 4 lo encontró verificando contra CONICET e IDEAN/UBA. Centenario no es
+una capa apilada entre Quintuco y Agrio: es el **equivalente lateral de subsuelo de Agrio**
+en el borde este de la cuenca, el mismo intervalo de tiempo con otro nombre según la facies.
+En un corte vertical de un mismo punto no coexisten como dos bandas. La unidad que ocupa esa
+posición es Mulichinco, arenisca reservorio, con 1.039 pozos en el dato publicado.
 
 | orden (arriba→abajo) | formación | litología | trama |
 |---|---|---|---|
 | 1 | Rayoso | evaporitas y continental | chevrons |
 | 2 | Huitrín | evaporitas | chevrons |
 | 3 | Agrio | lutitas | guiones |
-| 4 | Centenario | areniscas | puntos |
+| 4 | Mulichinco | areniscas y conglomerados | puntos |
 | 5 | Quintuco | carbonatos | ladrillos |
 | 6 | **Vaca Muerta** | lutita bituminosa — **roca madre** | tinta sólida `--vaca` |
 | 7 | Tordillo | areniscas | puntos |
@@ -311,7 +318,7 @@ escribe en `manifiesto.json`:
 
 ```json
 "formaciones": {
-  "RAYOSO": 1750, "HUITRIN": 2660, "AGRIO": 3980, "CENTENARIO": 2023,
+  "RAYOSO": 1750, "HUITRIN": 2660, "AGRIO": 3980, "MULICHINCO": 1039,
   "QUINTUCO": 4062, "VACA MUERTA": 3547, "TORDILLO": 1699,
   "LOTENA": 2119, "LAJAS": 1887
 }

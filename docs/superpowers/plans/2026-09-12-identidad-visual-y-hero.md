@@ -527,7 +527,7 @@ En `scripts/lib/artefactos.mjs`, agregar arriba (después de los imports):
  * importe del árbol del navegador. El test de la Tarea 4 exige que coincidan.
  */
 const FORMACIONES_DEL_HERO = [
-  'RAYOSO', 'HUITRIN', 'AGRIO', 'CENTENARIO', 'QUINTUCO',
+  'RAYOSO', 'HUITRIN', 'AGRIO', 'MULICHINCO', 'QUINTUCO',
   'VACA MUERTA', 'TORDILLO', 'LOTENA', 'LAJAS',
 ]
 
@@ -668,12 +668,14 @@ describe('COLUMNA_NEUQUINA', () => {
   })
 
   it('está en el orden estratigráfico real, de la más joven a la más antigua', () => {
-    // Verificado contra la literatura de la cuenca: de abajo hacia arriba es
-    // Lajas -> Lotena -> Tordillo -> Vaca Muerta -> Quintuco -> Centenario ->
-    // Agrio -> Huitrin -> Rayoso. Este test es lo único que impide que alguien
-    // "ordene alfabéticamente" y publique una estratigrafía falsa.
+    // De abajo hacia arriba: Lajas -> Lotena -> Tordillo -> Vaca Muerta ->
+    // Quintuco -> Mulichinco -> Agrio -> Huitrin -> Rayoso. Este test impide que
+    // alguien "ordene alfabéticamente", pero NO prueba que el orden sea correcto:
+    // compara contra una lista hardcodeada acá, así que si el código y el test
+    // comparten el mismo error, pasa igual. La corrección del orden se verifica
+    // contra la literatura, no contra este test.
     expect(COLUMNA_NEUQUINA.map((f) => f.nombre)).toEqual([
-      'RAYOSO', 'HUITRIN', 'AGRIO', 'CENTENARIO', 'QUINTUCO',
+      'RAYOSO', 'HUITRIN', 'AGRIO', 'MULICHINCO', 'QUINTUCO',
       'VACA MUERTA', 'TORDILLO', 'LOTENA', 'LAJAS',
     ])
   })
@@ -773,7 +775,7 @@ Expected: FAIL, no se pueden resolver los módulos.
  * La columna estratigráfica de la cuenca Neuquina que dibuja el hero, de la
  * formación más joven a la más antigua. Verificada contra la literatura de la
  * cuenca: de abajo hacia arriba es Lajas -> Lotena -> Tordillo -> Vaca Muerta ->
- * Quintuco -> Centenario -> Agrio -> Huitrín -> Rayoso.
+ * Quintuco -> Mulichinco -> Agrio -> Huitrín -> Rayoso.
  *
  * Es dato, no lógica: sin funciones y sin dependencias. Los conteos de pozos NO
  * viven acá, salen del manifiesto (G5): `corte.js` recorre esta lista y les pega
@@ -786,7 +788,7 @@ export const COLUMNA_NEUQUINA = [
   { nombre: 'RAYOSO',      litologia: 'evaporitas y continental', trama: 'evaporita',  rocaMadre: false },
   { nombre: 'HUITRIN',     litologia: 'evaporitas',               trama: 'evaporita',  rocaMadre: false },
   { nombre: 'AGRIO',       litologia: 'lutitas',                  trama: 'lutita',     rocaMadre: false },
-  { nombre: 'CENTENARIO',  litologia: 'areniscas',                trama: 'arenisca',   rocaMadre: false },
+  { nombre: 'MULICHINCO',  litologia: 'areniscas y conglomerados', trama: 'arenisca',  rocaMadre: false },
   { nombre: 'QUINTUCO',    litologia: 'carbonatos',               trama: 'caliza',     rocaMadre: false },
   { nombre: 'VACA MUERTA', litologia: 'lutita bituminosa',        trama: 'bituminosa', rocaMadre: true  },
   { nombre: 'TORDILLO',    litologia: 'areniscas',                trama: 'arenisca',   rocaMadre: false },
@@ -884,7 +886,7 @@ import { COLUMNA_NEUQUINA } from '../../lib/estratigrafia.js'
 import { idDeTrama } from './tramas.js'
 
 const MANIFIESTO = {
-  RAYOSO: 1750, HUITRIN: 2660, AGRIO: 3980, CENTENARIO: 2023, QUINTUCO: 4062,
+  RAYOSO: 1750, HUITRIN: 2660, AGRIO: 3980, MULICHINCO: 1039, QUINTUCO: 4062,
   'VACA MUERTA': 3547, TORDILLO: 1699, LOTENA: 2119, LAJAS: 1887,
 }
 
@@ -1679,7 +1681,7 @@ const MANIFIESTO = {
   ultimoPeriodo: 202607,
   generado: '2026-09-12T13:34:25.865Z',
   formaciones: {
-    RAYOSO: 1750, HUITRIN: 2660, AGRIO: 3980, CENTENARIO: 2023, QUINTUCO: 4062,
+    RAYOSO: 1750, HUITRIN: 2660, AGRIO: 3980, MULICHINCO: 1039, QUINTUCO: 4062,
     'VACA MUERTA': 3547, TORDILLO: 1699, LOTENA: 2119, LAJAS: 1887,
   },
 }
