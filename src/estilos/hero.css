@@ -73,15 +73,47 @@
    vertical del hero entero (medido con getBoundingClientRect() contra el
    título real de la Tarea 7, ver el reporte de la Tarea 6 §10). Cada
    elemento declara su propia medida, en sus propios `ch`. */
+/* El `min(Xvw, Yvh)` -y no sólo `vw`- es lo que hace que el título y la
+   bajada encojan en una pantalla BAJA, no sólo angosta. Sin el término en
+   `vh`, el alto del bloque de texto depende sólo del ANCHO del viewport
+   (por el `ch`-wrapping), mientras que la posición de RAYOSO -la primera
+   banda, justo bajo el horizonte- depende de la ESCALA del dibujo, que
+   depende del ALTO (`max(ancho/1200, alto/720)`). Son dos sistemas de
+   coordenadas independientes: a una altura de ~800px (1280x800, 1200x800 --
+   notebooks reales y comunes, no un caso de laboratorio) RAYOSO sube en
+   pantalla mientras el texto no cede nada, y los dos chocan -ni el
+   `padding` ni el degradé de acá abajo lo pueden resolver, porque el
+   choque es de texto crudo, medido sin ninguno de los dos puesto (revisión,
+   ronda 4). Con el término en `vh`, a esa altura el título y la bajada
+   ceden y el bloque libra a RAYOSO con margen.
+
+   Medido con getBBox()/getBoundingClientRect() real (Emulation.
+   setDeviceMetricsOverride vía CDP, no `--window-size`: ver la nota de la
+   Tarea 7 sobre su piso de 500px) en los cuatro viewports que importan --
+   1920x1080 y 1440x900 porque ya libraban y no podían empeorar, 1280x800 y
+   1200x800 porque chocaban antes de este cambio:
+
+     viewport    título   margen dato↔RAYOSO (antes → después)
+     1920x1080   3 líneas   +62,6px → +64,2px
+     1440x900    3 líneas    +2,7px → +27,8px
+     1280x800    3 líneas   -30,8px → +18,9px  (chocaba, ahora libra)
+     1200x800    3 líneas   -25,7px → +18,9px  (chocaba, ahora libra)
+
+   El título se mantiene en 3 líneas en los cuatro -encoger el tamaño no
+   cambia cuántos caracteres entran por línea, porque `max-width` está en
+   `ch`, relativo al propio tamaño de fuente-. Los coeficientes (4,1vh
+   título, 2,0vh bajada) son una medida, no una fórmula cerrada: si el copy
+   cambia o se agregan formaciones, hay que volver a medir con este mismo
+   método, no recalcular a mano. */
 .hero__titulo {
-  font: 600 clamp(1.8rem, 3.6vw, 2.8rem)/1.06 var(--serif);
+  font: 600 clamp(1.8rem, min(3.6vw, 4.1vh), 2.8rem)/1.06 var(--serif);
   max-width: 24ch;
   margin: 0;
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
 .hero__bajada {
-  font: 400 clamp(0.98rem, 1.6vw, 1.12rem)/1.5 var(--serif);
+  font: 400 clamp(0.95rem, min(1.6vw, 2.0vh), 1.12rem)/1.5 var(--serif);
   max-width: 58ch;
   color: var(--apagado);
   margin: 0.8rem 0 0;
