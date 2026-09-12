@@ -292,4 +292,36 @@ describe('construirCorte', () => {
       }
     }
   })
+
+  // --- Ronda de la Tarea 7: a 390px sólo se ve hasta x=333 (xMinYMax slice),
+  // y "VACA MUERTA · ROCA MADRE · 3.547 pozos" (arranca en x=74) se sale de
+  // esa ventana. El rótulo de la roca madre es el único que la regla de
+  // pantallas angostas deja visible a propósito (I5): partirlo en `tspan`
+  // permite ocultar sólo el rol y el conteo en ese ancho, y que sobreviva
+  // "VACA MUERTA" sola. jsdom no mide anchos (ver nota más arriba), así que
+  // esto verifica la estructura, no el ancho -- el ancho está medido con
+  // Chrome headless y documentado en el reporte.
+  it('el rótulo de la roca madre separa nombre, rol y conteo en tspan propios (I5, angosto)', () => {
+    const caja = montar()
+    const rotuloMadre = caja.querySelector('.corte__estrato--madre .corte__rotulo')
+    const nombre = rotuloMadre.querySelector('.corte__rotulo-nombre')
+    const rol = rotuloMadre.querySelector('.corte__rotulo-rol')
+    const cifra = rotuloMadre.querySelector('.corte__rotulo-cifra')
+    expect(nombre.textContent).toBe('VACA MUERTA')
+    expect(rol.textContent.toUpperCase()).toContain('ROCA MADRE')
+    expect(cifra.textContent).toContain('3.547')
+    // El nombre solo, sin el resto: es lo que tiene que sobrevivir a 390px.
+    expect(nombre.textContent).not.toContain('ROCA MADRE')
+    expect(nombre.textContent).not.toContain('3.547')
+  })
+
+  it('el tspan del conteo de la roca madre no aparece si el manifiesto no trae conteos (B1)', () => {
+    const { 'VACA MUERTA': _omitida, ...incompleto } = MANIFIESTO
+    const caja = montar({ formaciones: incompleto })
+    const rotuloMadre = caja.querySelector('.corte__estrato--madre .corte__rotulo')
+    expect(rotuloMadre.querySelector('.corte__rotulo-nombre').textContent).toBe('VACA MUERTA')
+    expect(rotuloMadre.querySelector('.corte__rotulo-rol')).not.toBeNull()
+    expect(rotuloMadre.querySelector('.corte__rotulo-cifra')).toBeNull()
+    expect(rotuloMadre.textContent).not.toMatch(/undefined|NaN/)
+  })
 })

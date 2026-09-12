@@ -352,4 +352,12 @@
   .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
   .corte__escala,
   .corte__cuenca { display: none; }
+
+  /* El rótulo de la roca madre sí queda (es el foco), pero completo
+     ("VACA MUERTA · ROCA MADRE · 3.547 pozos", arrancando en x=74) no entra
+     en la ventana visible de `slice` a este ancho -- a 390px sólo se ve hasta
+     x=333 (medido con getBoundingClientRect() en Chrome headless, ver el
+     reporte de la Tarea 7). Se ocultan el rol y el conteo, partidos en
+     `tspan` propios en corte.js, y sobrevive "VACA MUERTA" sola. */
+  .corte__rotulo-rol, .corte__rotulo-cifra { display: none; }
 }

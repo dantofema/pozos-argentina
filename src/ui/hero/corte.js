@@ -172,9 +172,17 @@ export function construirCorte({ formaciones, pozos, periodo }) {
     const n = conteoDe(formaciones, b.nombre)
     // Sin conteo se rotula sólo el nombre: nunca un 0 inventado ni un undefined.
     const cifra = n === null ? '' : `${miles(n)} pozos`
+    // La roca madre es el único rótulo que la regla de pantallas angostas deja
+    // visible a propósito (I5): a 390px sólo se ve hasta x=333 (xMinYMax
+    // slice) y el rótulo completo, que arranca en x=74, no entra. Partido en
+    // tspan propios, el CSS puede ocultar el rol y el conteo en ese ancho y
+    // dejar sólo "VACA MUERTA", que sí entra. El resto de los rótulos se
+    // ocultan enteros a ese ancho (ver hero.css), así que no necesitan esto.
     const rotulo = b.rocaMadre
-      ? `${b.nombre} · ROCA MADRE${cifra ? ` · ${cifra}` : ''}`
-      : `${b.nombre}${cifra ? ` · ${cifra}` : ''}`
+      ? `<tspan class="corte__rotulo-nombre">${esc(b.nombre)}</tspan>` +
+        '<tspan class="corte__rotulo-rol"> · ROCA MADRE</tspan>' +
+        (cifra ? `<tspan class="corte__rotulo-cifra"> · ${esc(cifra)}</tspan>` : '')
+      : `${esc(b.nombre)}${cifra ? ` · ${esc(cifra)}` : ''}`
     return `
       <g class="corte__estrato${b.rocaMadre ? ' corte__estrato--madre' : ''}"
          data-formacion="${esc(b.nombre)}"
@@ -182,7 +190,7 @@ export function construirCorte({ formaciones, pozos, periodo }) {
         <rect class="corte__relleno" x="0" y="${b.y}" width="${ANCHO}" height="${b.h}"
               fill="url(#${idDeTrama(b.trama)})" />
         <line class="corte__contacto" x1="0" y1="${b.y}" x2="${ANCHO}" y2="${b.y}" />
-        <text class="corte__rotulo" x="74" y="${b.y + 20}">${esc(rotulo)}</text>
+        <text class="corte__rotulo" x="74" y="${b.y + 20}">${rotulo}</text>
       </g>`
   }).join('')
 
