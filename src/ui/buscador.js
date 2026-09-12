@@ -40,8 +40,9 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   const lista = contenedor.querySelector('.buscador__resultados')
   const botonLimpiar = contenedor.querySelector('.buscador__limpiar')
 
-  /** Con algo elegido, la lista se cierra: lo que importa pasa a ser la selección. */
-  let elegido = null
+  // Con algo elegido la lista se cierra: lo que importa pasa a ser la selección.
+  // Alcanza con saber si hay algo elegido; quién lo eligió no cambia nada.
+  let hayEleccion = false
 
   function cerrarLista() {
     lista.innerHTML = ''
@@ -87,7 +88,7 @@ export function crearBuscador(contenedor, facetas, alElegir) {
       boton.querySelector('.buscador__valor').textContent = r.valor
       boton.querySelector('.buscador__cuenca').textContent = r.cuenca ?? ''
       boton.onclick = () => {
-        elegido = r
+        hayEleccion = true
         entrada.value = r.cuenca ? `${r.valor} (${r.cuenca})` : r.valor
         botonLimpiar.hidden = false
         cerrarLista()
@@ -99,7 +100,7 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   }
 
   function limpiarTodo() {
-    elegido = null
+    hayEleccion = false
     entrada.value = ''
     selector.value = 'todos'
     botonLimpiar.hidden = true
@@ -108,11 +109,11 @@ export function crearBuscador(contenedor, facetas, alElegir) {
 
   entrada.addEventListener('input', () => {
     // Escribir sobre una selección la descarta: se vuelve a buscar.
-    if (elegido) { elegido = null; botonLimpiar.hidden = true }
+    if (hayEleccion) { hayEleccion = false; botonLimpiar.hidden = true }
     pintar()
   })
   selector.addEventListener('change', () => {
-    if (elegido) { elegido = null; entrada.value = ''; botonLimpiar.hidden = true }
+    if (hayEleccion) { hayEleccion = false; entrada.value = ''; botonLimpiar.hidden = true }
     pintar()
   })
   botonLimpiar.addEventListener('click', () => {
@@ -130,7 +131,7 @@ export function crearBuscador(contenedor, facetas, alElegir) {
      */
     reflejar(estado) {
       if (estado?.modo === 'faceta' && estado.valor) {
-        elegido = estado
+        hayEleccion = true
         entrada.value = estado.cuenca ? `${estado.valor} (${estado.cuenca})` : estado.valor
         botonLimpiar.hidden = false
         cerrarLista()
@@ -138,7 +139,5 @@ export function crearBuscador(contenedor, facetas, alElegir) {
         limpiarTodo()
       }
     },
-    /** Lo elegido, o null si no hay nada elegido. */
-    seleccion: () => elegido,
   }
 }
