@@ -7,7 +7,7 @@ import { COLUMNAS_DICT } from '../../src/lib/esquema.js'
  * importe del árbol del navegador. El test de la Tarea 4 exige que coincidan.
  */
 const FORMACIONES_DEL_HERO = [
-  'RAYOSO', 'HUITRIN', 'AGRIO', 'CENTENARIO', 'QUINTUCO',
+  'RAYOSO', 'HUITRIN', 'AGRIO', 'MULICHINCO', 'QUINTUCO',
   'VACA MUERTA', 'TORDILLO', 'LOTENA', 'LAJAS',
 ]
 

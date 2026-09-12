@@ -8,12 +8,14 @@ describe('COLUMNA_NEUQUINA', () => {
   })
 
   it('está en el orden estratigráfico real, de la más joven a la más antigua', () => {
-    // Verificado contra la literatura de la cuenca: de abajo hacia arriba es
-    // Lajas -> Lotena -> Tordillo -> Vaca Muerta -> Quintuco -> Centenario ->
-    // Agrio -> Huitrin -> Rayoso. Este test es lo único que impide que alguien
-    // "ordene alfabéticamente" y publique una estratigrafía falsa.
+    // De abajo hacia arriba: Lajas -> Lotena -> Tordillo -> Vaca Muerta ->
+    // Quintuco -> Mulichinco -> Agrio -> Huitrin -> Rayoso. Este test impide que
+    // alguien "ordene alfabéticamente", pero NO prueba que el orden sea correcto:
+    // compara contra una lista hardcodeada acá, así que si el código y el test
+    // comparten el mismo error, pasa igual. La corrección del orden se verifica
+    // contra la literatura, no contra este test.
     expect(COLUMNA_NEUQUINA.map((f) => f.nombre)).toEqual([
-      'RAYOSO', 'HUITRIN', 'AGRIO', 'CENTENARIO', 'QUINTUCO',
+      'RAYOSO', 'HUITRIN', 'AGRIO', 'MULICHINCO', 'QUINTUCO',
       'VACA MUERTA', 'TORDILLO', 'LOTENA', 'LAJAS',
     ])
   })
