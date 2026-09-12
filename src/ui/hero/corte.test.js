@@ -324,4 +324,17 @@ describe('construirCorte', () => {
     expect(rotuloMadre.querySelector('.corte__rotulo-cifra')).toBeNull()
     expect(rotuloMadre.textContent).not.toMatch(/undefined|NaN/)
   })
+
+  // --- Revisión de la Tarea 7 (Important 2): mover el rótulo de la cuenca
+  // hacia adentro para que sobreviviera el recorte de 1200x800 lo metió en
+  // la trayectoria del casing del tercer balancín (x=925). jsdom no mide
+  // anchos reales (ver la nota de más arriba, tampoco aplica acá), así que
+  // esto no vuelve a calcular el ancho del glifo -- verifica que `x` caiga
+  // en la ventana que sí midió la revisión con getBBox() real: por encima de
+  // 1034 libra el casing con margen, en 1080 o menos sobrevive el recorte.
+  it('el rótulo de la cuenca libra el casing del tercer balancín y sobrevive el recorte de 1200x800 (Important 2)', () => {
+    const xCuenca = Number(montar().querySelector('.corte__cuenca').getAttribute('x'))
+    expect(xCuenca, 'el rótulo de la cuenca puede cruzar el casing del tercer balancín').toBeGreaterThan(1034)
+    expect(xCuenca, 'el rótulo de la cuenca se corta a 1200x800').toBeLessThanOrEqual(1080)
+  })
 })

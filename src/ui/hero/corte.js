@@ -260,7 +260,7 @@ export function construirCorte({ formaciones, pozos, periodo }) {
        borde, x=ANCHO-56=1144) entra con 8 unidades de margen, pero el caso
        que manda es más angosto:
 
-         viewport    escala  visible hasta x   x=1144       x=1020
+         viewport    escala  visible hasta x   x=1144       x=1050
          1920x1080   1,600   1200              entra        entra
          1440x900    1,250   1152              entra        entra
          1366x768    1,138   1200              entra        entra
@@ -268,12 +268,16 @@ export function construirCorte({ formaciones, pozos, periodo }) {
 
        A 1200x800 (1,5:1, más angosto que el 1,6 que tomé como el extremo de
        lo "típico") la ventana cae a x=1080, por debajo del rótulo original.
-       Confirmado con capturas reales (Chrome headless, perfiles frescos, con
-       y sin virtual-time-budget): a x=ANCHO-140 seguía cortado ("CUENCA
-       NEUQUIN", sin la "A"); sobrevive completo desde x=ANCHO-160, con
-       margen cómodo desde x=ANCHO-180 -- que además entra con margen incluso
-       en el caso límite de la tabla (1200x800). No mover este valor sin
-       volver a mirar esa fila. -->
-  <text class="corte__cuenca" x="${ANCHO - 180}" y="${HORIZONTE + 26}" text-anchor="end">CUENCA NEUQUINA</text>
+       Segunda restricción, encontrada en la revisión (Important 2): el
+       casing del tercer balancín cae en x=925 (890 + CABEZA_CABLE_X*0,62),
+       así que correr el rótulo hacia adentro sin mirar esto lo mete en la
+       trayectoria del casing -- pasó con ANCHO-180 (x=1020), que libraba el
+       recorte pero cruzaba el casing por el medio (getBBox() real: bbox de
+       911,7 a 1020). La ventana válida son las dos condiciones juntas: por
+       encima de 1034 libra el casing con margen, en 1080 o menos sobrevive
+       el recorte de 1200x800. ANCHO-150 (x=1050) cae adentro de las dos, con
+       margen para cada lado. No mover este valor sin volver a verificar
+       ambas -- no alcanza con una sola. -->
+  <text class="corte__cuenca" x="${ANCHO - 150}" y="${HORIZONTE + 26}" text-anchor="end">CUENCA NEUQUINA</text>
 </svg>`
 }
