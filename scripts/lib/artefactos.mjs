@@ -1,5 +1,25 @@
 import { COLUMNAS_DICT } from '../../src/lib/esquema.js'
 
+/**
+ * Las nueve formaciones que dibuja el hero, en el orden estratigráfico de la
+ * cuenca Neuquina. Se duplican acá a propósito: `src/lib/estratigrafia.js` es el
+ * dato del dibujo y este es el del build, y no queremos que el script de build
+ * importe del árbol del navegador. El test de la Tarea 4 exige que coincidan.
+ */
+const FORMACIONES_DEL_HERO = [
+  'RAYOSO', 'HUITRIN', 'AGRIO', 'CENTENARIO', 'QUINTUCO',
+  'VACA MUERTA', 'TORDILLO', 'LOTENA', 'LAJAS',
+]
+
+/** Mayúsculas sin acentos, para que `huitrín` del origen matchee `HUITRIN`. */
+function claveFormacion(texto) {
+  return String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim()
+}
+
 /** Devuelve el índice del valor en el diccionario, agregándolo si no estaba. */
 export function indiceDe(diccionario, valor) {
   const v = valor ?? ''
@@ -73,6 +93,9 @@ export function construirArtefactos(pozos, agregados) {
   // Se listan enteros, no se cuentan: son pocos y el build los nombra para que
   // se pueda reclamar al origen pozo por pozo.
   const fueraDeCaja = []
+  // Arranca en cero y no vacío: una formación de la columna sin pozos declarados
+  // es un dato, y es distinto de un manifiesto viejo que no trae la clave.
+  const formaciones = Object.fromEntries(FORMACIONES_DEL_HERO.map((f) => [f, 0]))
 
   for (const p of pozos) {
     const c = coordenadas(p.geojson)
@@ -86,6 +109,11 @@ export function construirArtefactos(pozos, agregados) {
     if (!enCaja(c)) {
       fueraDeCaja.push({ idpozo: Number(p.idpozo), sigla: p.sigla ?? '', lon: c[0], lat: c[1] })
       continue
+    }
+
+    if (claveFormacion(p.cuenca) === 'NEUQUINA') {
+      const f = claveFormacion(p.formacion)
+      if (f in formaciones) formaciones[f]++
     }
 
     const id = Number(p.idpozo)
@@ -118,5 +146,5 @@ export function construirArtefactos(pozos, agregados) {
     full.get(cuenca).rows.push(fila)
   }
 
-  return { lite: { dicts, rows: lite }, full, sinProduccion, descartados, fueraDeCaja }
+  return { lite: { dicts, rows: lite }, full, sinProduccion, descartados, fueraDeCaja, formaciones }
 }

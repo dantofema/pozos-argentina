@@ -152,3 +152,24 @@ que mantener la atribución al IGN a la vista.
 
 No se ofrece un selector de capa base. El control de capas del mapa es sólo para las capas de
 contexto del WMS de Energía (concesiones, ductos, yacimientos), que se superponen.
+
+## D8 — El manifiesto lleva el conteo de las nueve formaciones del hero
+
+El corte geológico del hero rotula cada estrato con su cantidad de pozos. Esas
+cifras no se escriben a mano: las cuenta el build y las deja en `formaciones` de
+`manifiesto.json`.
+
+Es un objeto de exactamente nueve claves —las formaciones de la columna Neuquina
+que dibuja el hero—, no un volcado de las 79 formaciones del dato. Las claves van
+en mayúsculas y sin acentos, porque el origen escribe `huitrín` y el dibujo pide
+`HUITRIN`. Sólo se cuentan pozos de la cuenca Neuquina: la columna es la de esa
+cuenca y el dibujo lo rotula así.
+
+Una formación de la columna que no tenga pozos declarados queda en **cero, no
+ausente**: son dos cosas distintas para el hero. Cero significa que el origen no
+declaró ninguno, que es un dato. Ausente significa que el manifiesto lo generó un
+build anterior a esta regla, y ahí el hero dibuja la banda sin conteo en vez de
+inventar un cero.
+
+El build no falla si una formación desaparece del origen: no es una guarda de
+volumen, es un rótulo. Lo loguea.

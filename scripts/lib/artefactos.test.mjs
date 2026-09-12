@@ -167,3 +167,59 @@ describe('caja de plausibilidad', () => {
     expect(fueraDeCaja).toEqual([])
   })
 })
+
+describe('conteo por formación para el hero', () => {
+  const conFormacion = (idpozo, formacion, cuenca = 'NEUQUINA') => ({
+    ...pozos[1], idpozo, formacion, cuenca,
+    geojson: '{"type":"Point","coordinates":[-68.65,-38.36]}',
+  })
+
+  it('cuenta los pozos de cada formación de la columna Neuquina', () => {
+    const { formaciones } = construirArtefactos([
+      conFormacion('1', 'vaca muerta'),
+      conFormacion('2', 'vaca muerta'),
+      conFormacion('3', 'quintuco'),
+    ], new Map())
+
+    expect(formaciones['VACA MUERTA']).toBe(2)
+    expect(formaciones['QUINTUCO']).toBe(1)
+  })
+
+  it('normaliza los acentos: HUITRÍN del dato entra como HUITRIN', () => {
+    const { formaciones } = construirArtefactos([conFormacion('1', 'huitrín')], new Map())
+    expect(formaciones['HUITRIN']).toBe(1)
+  })
+
+  it('no trae las 79 formaciones del dato, sólo las nueve del dibujo', () => {
+    const { formaciones } = construirArtefactos([
+      conFormacion('1', 'vaca muerta'),
+      conFormacion('2', 'bajo barreal', 'GOLFO SAN JORGE'),
+    ], new Map())
+
+    expect(Object.keys(formaciones)).toHaveLength(9)
+    expect(formaciones).not.toHaveProperty('BAJO BARREAL')
+  })
+
+  it('una formación de la columna sin pozos en el volcado queda en cero, no ausente', () => {
+    const { formaciones } = construirArtefactos([conFormacion('1', 'vaca muerta')], new Map())
+    // Que la clave exista con 0 y que falte son cosas distintas para el hero:
+    // ausente significa "build viejo" y dibuja sin conteo; 0 significa "el
+    // origen no declaró ninguno", que es un dato.
+    expect(formaciones['LAJAS']).toBe(0)
+  })
+
+  it('sólo cuenta pozos de la cuenca Neuquina (I6)', () => {
+    const { formaciones } = construirArtefactos([
+      conFormacion('1', 'lajas', 'NEUQUINA'),
+      conFormacion('2', 'lajas', 'AUSTRAL'),
+    ], new Map())
+    expect(formaciones['LAJAS']).toBe(1)
+  })
+
+  it('no cuenta un pozo descartado por estar fuera de la caja', () => {
+    const fuera = { ...conFormacion('9', 'vaca muerta'),
+      geojson: '{"type":"Point","coordinates":[-38.75634,-67.64238]}' }
+    const { formaciones } = construirArtefactos([fuera], new Map())
+    expect(formaciones['VACA MUERTA']).toBe(0)
+  })
+})

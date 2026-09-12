@@ -56,12 +56,19 @@ async function main() {
   log(`  ${agregados.size} pozos con producción`)
 
   log('Construyendo artefactos…')
-  const { lite, full, sinProduccion, descartados, fueraDeCaja } = construirArtefactos(pozos, agregados)
+  const { lite, full, sinProduccion, descartados, fueraDeCaja, formaciones } = construirArtefactos(pozos, agregados)
   log(`  ${lite.rows.length} pozos en el índice, ${sinProduccion} sin producción, ${descartados} descartados`)
   // Se nombran uno por uno: son coordenadas mentirosas del origen, y el único
   // modo de reclamarlas -o de notar que se multiplican- es verlas.
   for (const f of fueraDeCaja) {
     log(`  fuera de la caja de Argentina, descartado: ${f.idpozo} ${f.sigla} (${f.lon}, ${f.lat})`)
+  }
+
+  // No es una guarda de volumen, es un rótulo: si el origen renombra o retira
+  // una formación de la columna, el build sigue y lo deja loggeado (B3).
+  const sinPozos = Object.entries(formaciones).filter(([, n]) => n === 0).map(([f]) => f)
+  if (sinPozos.length > 0) {
+    log(`  formaciones del hero sin pozos declarados: ${sinPozos.join(', ')}`)
   }
 
   // Guarda contra los dos filtros silenciosos que corren después de las guardas
@@ -96,6 +103,7 @@ async function main() {
     sinProduccion,
     descartados,
     fueraDeCaja,
+    formaciones,
     ultimoPeriodo,
     recursos: recursos.map(({ anio, id, nombre, filas }) => ({ anio, id, nombre, filas })),
     cuencas,
