@@ -535,7 +535,7 @@ const FORMACIONES_DEL_HERO = [
 function claveFormacion(texto) {
   return String(texto ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
     .trim()
 }
