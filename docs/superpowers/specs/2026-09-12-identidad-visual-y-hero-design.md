@@ -79,6 +79,7 @@ defecto; `prefers-color-scheme: dark` y un `data-tema` explícito eligen el otro
 | `--vaca` | `#2E4A4F` | `#7FB2BA` | la roca madre, y sólo ella |
 | `--apagado` | `#6B6257` | `#93A2AA` | texto secundario, rótulos |
 | `--linea` | `#D8D2C7` | `#26323A` | bordes de interfaz |
+| `--superficie` | `#FBFAF7` | `#1C242A` | lo que se apoya sobre la página: inputs, botones, panel lateral, desplegable |
 
 Contrastes calculados sobre el fondo de cada tema:
 
@@ -89,6 +90,20 @@ Contrastes calculados sobre el fondo de cada tema:
 | vaca | 8,29:1 · AAA | 7,51:1 · AAA |
 | apagado | 5,21:1 · AA | 6,68:1 · AA |
 | papel sobre cobre (CTA) | 5,07:1 · AA | 6,57:1 · AA |
+
+Y sobre `--superficie`, porque los inputs y el panel lateral llevan texto encima:
+
+| | papel | cianotipo |
+|---|---|---|
+| tinta | 17,10:1 · AAA | 13,33:1 · AAA |
+| cobre | 5,58:1 · AA | 5,89:1 · AA |
+| vaca | 9,11:1 · AAA | 6,73:1 · AA |
+| apagado | 5,73:1 · AA | 5,98:1 · AA |
+
+La superficie se separa de la página por apenas 1,10:1, a propósito: en un registro de
+papel la jerarquía la hace el borde (`--linea`) y no el contraste, que es cómo se ve un
+formulario impreso sobre una hoja. Subir esa diferencia haría que los controles floten
+como software.
 
 Reglas de color:
 
