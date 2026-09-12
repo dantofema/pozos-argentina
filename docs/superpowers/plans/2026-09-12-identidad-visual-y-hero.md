@@ -1518,6 +1518,15 @@ Expected: PASS, 9 tests.
 }
 .balancin__contrapeso circle { fill: var(--cobre); stroke: none; }
 
+/* La cabeza y el cable los agregó una ronda posterior de la tarea del corte, y
+   el selector de arriba no les sirve: la cabeza es un `path` al que ese selector
+   le impone `fill: none`, y el cable es un `line`, que directamente no matchea.
+   Sin estas dos reglas el cable es invisible y la cabeza un contorno hueco.
+   La especificidad importa: `.balancin .balancin__cabeza` (0,2,0) le gana a
+   `.balancin path` (0,1,1); al revés no. */
+.balancin .balancin__cabeza { fill: var(--tinta); stroke: none; }
+.balancin .balancin__cable { stroke: var(--tinta); stroke-width: 1.6; fill: none; }
+
 /* La llama va en `--apagado` y no en `--cobre`: C1 reserva el cobre para el dato
    —pozos, cifras, el botón de descarga— y prohíbe decorar con él. Tinta la
    convertiría en un blob negro. `--apagado` es el tono mudo que el resto del
