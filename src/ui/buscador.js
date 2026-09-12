@@ -15,6 +15,29 @@ const OPCIONES = [
 const TOPE_POZOS_EN_TODOS = 5
 const TOPE = 20
 
+/**
+ * El campo antes de que existan facetas para buscar: deshabilitado, con el
+ * motivo dicho en el propio placeholder. No es un estado de error y no se
+ * anuncia como tal (E5) -es una espera, y una espera que dice de qué espera.
+ *
+ * Dos arranques necesitan exactamente este mismo campo: el hero (Tarea 7,
+ * mientras el índice de 1,26 MB no llegó) y, desde la Tarea 8, la barra de
+ * la herramienta cuando se entra sin hero -un enlace compartido- y el índice
+ * tampoco llegó todavía. Vive acá, un solo lugar, para que ninguno de los
+ * dos escriba el texto por su cuenta y se desincronicen si el motivo cambia.
+ * Devuelve un string y no monta nada: cada arranque lo interpola donde le
+ * corresponde (el hero, dentro de su propio marcado; la herramienta,
+ * directo en el contenedor del buscador).
+ */
+export function campoDeshabilitado(pozos) {
+  return `
+    <label class="buscador__campo">
+      <span class="buscador__etiqueta">Buscar</span>
+      <input class="buscador__entrada" type="search" disabled
+             placeholder="Cargando los ${pozos.toLocaleString('es-AR')} pozos…" />
+    </label>`
+}
+
 export function crearBuscador(contenedor, facetas, alElegir) {
   contenedor.innerHTML = `
     <div class="buscador">

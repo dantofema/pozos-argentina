@@ -214,12 +214,26 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   // ninguno de los dos se pise (antes ambos arrancaban cerca de x=20/24).
   //
   // La última marca (3.000 m) no llega hasta el borde inferior del todo: le
-  // resto MARGEN_LEYENDA al recorrido para dejarle un canal propio a la
-  // leyenda "PROFUNDIDAD (m) · ESQUEMÁTICO", que vive pegada al borde. Antes
-  // las dos se pisaban (9px entre baselines, con 10-11px de tipografía).
-  const MARGEN_LEYENDA = 40
+  // resto MARGEN_LEYENDAS al recorrido para dejarle un canal propio a las dos
+  // leyendas que viven pegadas ahí abajo -- "CUENCA NEUQUINA" y "PROFUNDIDAD
+  // (m) · ESQUEMÁTICO" (ver más abajo). El valor no es sólo "lo que ocupan
+  // dos líneas de 11px": `.hero__buscador` (hero.css) es una caja OPACA de
+  // 109px de alto, pegada al borde inferior del viewport con `margin-top:
+  // auto` -- no forma parte de este dibujo, pero le tapa una franja del
+  // borde inferior que este cálculo, hecho sólo en coordenadas del SVG, no
+  // puede ver. Esos 109px de pantalla no son 109 unidades locales: con
+  // `xMinYMax slice`, escala = max(ancho/1200, alto/720), y esa escala varía
+  // por viewport (1,11 a 1200x800/1280x800, hasta 1,6 a 1920x1080), así que
+  // los mismos 109px de pantalla comen MÁS unidades locales cuanto más chica
+  // es la escala. El caso que manda es el de escala más chica -- 1200x800 y
+  // 1280x800, escala 1,11 -- donde 109px + margen de aire se comen ~116
+  // unidades locales. MARGEN_LEYENDAS=150 dejando el bloque a partir de
+  // ALTO-130 le sobrevive con margen en los cinco viewports verificados
+  // (revisión de la Tarea 8, hallazgo 2 -- medido con getBoundingClientRect()
+  // real en Chrome headless, no sólo calculado).
+  const MARGEN_LEYENDAS = 150
   const escala = [0, 1000, 2000, 3000].map((m) => {
-    const y = HORIZONTE + (m / 3000) * (ALTO - MARGEN_LEYENDA - HORIZONTE)
+    const y = HORIZONTE + (m / 3000) * (ALTO - MARGEN_LEYENDAS - HORIZONTE)
     return `
       <g class="corte__marca">
         <line x1="0" y1="${y}" x2="14" y2="${y}" />
@@ -248,36 +262,46 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   <g class="corte__pozos">${pozosDibujados}</g>
   <g class="corte__escala">
     ${escala}
-    <text class="corte__leyenda" x="20" y="${ALTO - 14}">PROFUNDIDAD (m) · ESQUEMÁTICO</text>
+    <!-- Revisión de la Tarea 8 (hallazgo 2): esto vivía arriba a la derecha,
+         corrido para librar el casing del tercer balancín sin que el recorte
+         de "slice" lo cortara -- dos condiciones sobre la MISMA coordenada,
+         y a 1280x900 resultaron incompatibles: la ventana visible llega
+         hasta x=1024, pero librar el casing pedía x>1034. No hay ningún
+         valor que cumpla las dos a la vez ahí; el problema era el lugar, no
+         el número.
+
+         Bajarlo junto a "PROFUNDIDAD (m) · ESQUEMÁTICO" resuelve las dos
+         cosas de una vez, sin depender del viewport: con la proyección
+         xMinYMax slice el borde izquierdo (x=0) y el borde inferior (y=ALTO)
+         son justo los dos que quedan anclados, así que nunca se recortan --
+         es la única esquina de la que eso vale sin medir nada por pantalla.
+         Y por ahí no pasa ningún casing: los laterales de los pozos viven a
+         mitad de columna (profundidadLateral, más arriba), no al fondo. Por
+         eso vive DENTRO de .corte__escala y no como hermano suelto del svg
+         (como antes): las dos leyendas que hablan SOBRE el dibujo -de qué
+         cuenca es, que la escala es esquemática- son un mismo bloque, y
+         anidarlo hace que se esconda a pantallas angostas y se hunda en el
+         relevo con el resto del grupo, sin reglas de CSS repetidas para
+         cada uno.
+
+         Pero "y=ALTO nunca se recorta" es sólo la mitad de la historia: no
+         se recorta por el slice, pero .hero__buscador (hero.css) SÍ lo tapa
+         -es una caja opaca de 109px pegada al borde inferior del viewport, y
+         ese borde es justo donde vive esta esquina-. El primer intento puso
+         el bloque a y=ALTO-30/ALTO-14 (pegado del todo al fondo, como
+         "PROFUNDIDAD..." vivía desde antes de esta tarea) y las dos líneas
+         quedaron TAPADAS por esa caja en los cinco viewports, confirmado con
+         getBoundingClientRect() real -- .hero__buscador empieza en pantalla
+         más arriba de donde terminaba el texto en los cinco casos. De ahí el
+         MARGEN_LEYENDAS=150 de arriba: sube el bloque entero lo suficiente
+         como para que sobreviva incluso al viewport de escala más chica
+         (1200x800/1280x800), donde esos mismos 109px de pantalla comen más
+         unidades locales. -->
+    <text class="corte__cuenca" x="20" y="${ALTO - 130}">CUENCA NEUQUINA</text>
+    <text class="corte__leyenda" x="20" y="${ALTO - 114}">PROFUNDIDAD (m) · ESQUEMÁTICO</text>
   </g>
 
   <line class="corte__horizonte" x1="0" y1="${HORIZONTE}" x2="${ANCHO}" y2="${HORIZONTE}" />
   <g class="corte__superficie">${superficie}</g>
-
-  <!-- Con xMinYMax slice, escala = max(ancho/1200, alto/720) y la ventana
-       visible en coordenadas locales llega hasta x = ancho/escala. El error
-       de mi primer cálculo fue mirar sólo 1440x900: ahí el rótulo (pegado al
-       borde, x=ANCHO-56=1144) entra con 8 unidades de margen, pero el caso
-       que manda es más angosto:
-
-         viewport    escala  visible hasta x   x=1144       x=1050
-         1920x1080   1,600   1200              entra        entra
-         1440x900    1,250   1152              entra        entra
-         1366x768    1,138   1200              entra        entra
-         1200x800    1,111   1080              SE CORTA     entra
-
-       A 1200x800 (1,5:1, más angosto que el 1,6 que tomé como el extremo de
-       lo "típico") la ventana cae a x=1080, por debajo del rótulo original.
-       Segunda restricción, encontrada en la revisión (Important 2): el
-       casing del tercer balancín cae en x=925 (890 + CABEZA_CABLE_X*0,62),
-       así que correr el rótulo hacia adentro sin mirar esto lo mete en la
-       trayectoria del casing -- pasó con ANCHO-180 (x=1020), que libraba el
-       recorte pero cruzaba el casing por el medio (getBBox() real: bbox de
-       911,7 a 1020). La ventana válida son las dos condiciones juntas: por
-       encima de 1034 libra el casing con margen, en 1080 o menos sobrevive
-       el recorte de 1200x800. ANCHO-150 (x=1050) cae adentro de las dos, con
-       margen para cada lado. No mover este valor sin volver a verificar
-       ambas -- no alcanza con una sola. -->
-  <text class="corte__cuenca" x="${ANCHO - 150}" y="${HORIZONTE + 26}" text-anchor="end">CUENCA NEUQUINA</text>
 </svg>`
 }

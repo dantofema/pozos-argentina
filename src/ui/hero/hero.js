@@ -1,6 +1,6 @@
 import { construirCorte } from './corte.js'
 import { crearCoreografia, DURACIONES } from './coreografia.js'
-import { crearBuscador } from '../buscador.js'
+import { crearBuscador, campoDeshabilitado } from '../buscador.js'
 import { periodoLegible } from '../../lib/resumen.js'
 
 const TITULO = 'Todos los pozos de hidrocarburos del país, en un CSV'
@@ -33,13 +33,7 @@ export function crearHero(contenedor, { manifiesto }) {
         <p class="hero__bajada">${BAJADA}</p>
         <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
       </div>
-      <div class="hero__buscador">
-        <label class="buscador__campo">
-          <span class="buscador__etiqueta">Buscar</span>
-          <input class="buscador__entrada" type="search" disabled
-                 placeholder="Cargando los ${manifiesto.pozos.toLocaleString('es-AR')} pozos…" />
-        </label>
-      </div>
+      <div class="hero__buscador">${campoDeshabilitado(manifiesto.pozos)}</div>
     </div>`
 
   const raiz = contenedor.querySelector('.hero')

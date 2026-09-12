@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { crearBuscador } from './buscador.js'
+import { crearBuscador, campoDeshabilitado } from './buscador.js'
 
 const facetas = [
   { tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL', indice: 0, cantidad: 1, buscable: 'el tordillo' },
@@ -304,5 +304,25 @@ describe('la lista de sugerencias', () => {
     // Sin la escucha, un click afuera ya no cierra la lista.
     expect(lista().hidden).toBe(false)
     afuera.remove()
+  })
+})
+
+// Revisión de la Tarea 8 (hallazgo 3): antes de esta función, el campo
+// deshabilitado que dice "está cargando" vivía escrito a mano en dos
+// lugares -el arranque del hero (Tarea 7) y, con este arreglo, el arranque
+// de la herramienta cuando llega sin hero (un enlace directo)-. Un único
+// lugar para ese texto: si el motivo cambia, cambia una vez.
+describe('campoDeshabilitado', () => {
+  it('arma un campo deshabilitado que dice cuántos pozos está cargando (E5)', () => {
+    contenedor.innerHTML = campoDeshabilitado(85609)
+    const entrada = contenedor.querySelector('.buscador__entrada')
+    expect(entrada.disabled).toBe(true)
+    expect(entrada.placeholder).toContain('85.609')
+    expect(entrada.placeholder).toMatch(/cargando/i)
+  })
+
+  it('no anuncia un error: no hay ningún rol ni texto de alerta', () => {
+    contenedor.innerHTML = campoDeshabilitado(85609)
+    expect(contenedor.textContent).not.toMatch(/error|falló|no se pudo/i)
   })
 })

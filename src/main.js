@@ -6,7 +6,7 @@ import { construirCsv } from './lib/csv.js'
 import { leerEstado, escribirEstado } from './lib/url.js'
 import { periodoLegible, filasDelAmbito } from './lib/resumen.js'
 import { crearMapa } from './ui/mapa.js'
-import { crearBuscador } from './ui/buscador.js'
+import { crearBuscador, campoDeshabilitado } from './ui/buscador.js'
 import { crearHerramientas } from './ui/herramientas.js'
 import { crearPanelDescarga, nombreArchivo, descargarCsv } from './ui/descarga.js'
 import { crearHero } from './ui/hero/hero.js'
@@ -49,6 +49,15 @@ try {
 
   const mapa = crearMapa(document.querySelector('#mapa'))
   const panel = crearPanelDescarga(document.querySelector('#descarga'))
+
+  // El buscador de la barra recién puede armarse con las facetas, que piden
+  // el índice completo -todavía no llegó-. Hasta entonces el campo queda
+  // deshabilitado diciendo por qué (E5), mismo criterio y mismo texto que el
+  // placeholder del hero: `campoDeshabilitado` vive en buscador.js para que
+  // ninguno de los dos arranques escriba ese texto por su cuenta (revisión,
+  // hallazgo 3 -sin esto, un enlace directo sin hero dejaba el campo vacío
+  // y sin explicación mientras cargaba el índice).
+  document.querySelector('#buscador').innerHTML = campoDeshabilitado(manifiesto.pozos)
 
   document.querySelector('#pie').textContent =
     `${manifiesto.pozos.toLocaleString('es-AR')} pozos · producción hasta ${periodoLegible(manifiesto.ultimoPeriodo)} · ` +

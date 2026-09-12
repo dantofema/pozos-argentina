@@ -325,16 +325,37 @@ describe('construirCorte', () => {
     expect(rotuloMadre.textContent).not.toMatch(/undefined|NaN/)
   })
 
-  // --- Revisión de la Tarea 7 (Important 2): mover el rótulo de la cuenca
-  // hacia adentro para que sobreviviera el recorte de 1200x800 lo metió en
-  // la trayectoria del casing del tercer balancín (x=925). jsdom no mide
-  // anchos reales (ver la nota de más arriba, tampoco aplica acá), así que
-  // esto no vuelve a calcular el ancho del glifo -- verifica que `x` caiga
-  // en la ventana que sí midió la revisión con getBBox() real: por encima de
-  // 1034 libra el casing con margen, en 1080 o menos sobrevive el recorte.
-  it('el rótulo de la cuenca libra el casing del tercer balancín y sobrevive el recorte de 1200x800 (Important 2)', () => {
-    const xCuenca = Number(montar().querySelector('.corte__cuenca').getAttribute('x'))
-    expect(xCuenca, 'el rótulo de la cuenca puede cruzar el casing del tercer balancín').toBeGreaterThan(1034)
-    expect(xCuenca, 'el rótulo de la cuenca se corta a 1200x800').toBeLessThanOrEqual(1080)
+  // --- Revisión de la Tarea 8 (hallazgo 2): la Tarea 7 movía el rótulo de la
+  // cuenca de coordenada en coordenada para librar el casing del tercer
+  // balancín Y sobrevivir el recorte de `slice`, pero a 1280x900 las dos
+  // condiciones son incompatibles -- no hay ningún x que las cumpla juntas
+  // (medido: viewport visible hasta x=1024, y el casing exige x>1034). El
+  // problema era el LUGAR, no la coordenada. Se lo bajó a la esquina inferior
+  // izquierda, junto a la leyenda de profundidad: con `xMinYMax slice` el
+  // borde izquierdo (x=0) y el borde inferior (y=720) nunca se recortan --
+  // son justo los dos bordes que la proyección ancla-- así que esa esquina
+  // no necesita, a diferencia de la posición vieja, verificar ventana por
+  // viewport. Y ahí abajo no pasa ningún casing (los laterales de los pozos
+  // viven a mitad de columna, no al fondo).
+  it('el rótulo de la cuenca vive junto a la leyenda de profundidad, ancladas las dos a la izquierda (revisión, hallazgo 2)', () => {
+    const caja = montar()
+    const cuenca = caja.querySelector('.corte__cuenca')
+    const leyenda = caja.querySelector('.corte__leyenda')
+    // Sin text-anchor="end": el default de SVG es "start", ancla a la
+    // izquierda -- el borde que `xMinYMax slice` nunca recorta.
+    expect(cuenca.getAttribute('text-anchor')).toBeNull()
+    expect(cuenca.getAttribute('x')).toBe(leyenda.getAttribute('x'))
+    // Encima de la leyenda de profundidad y cerca, como un mismo bloque: "de
+    // qué cuenca es" antes que "cómo leer la escala", no dos rótulos sueltos
+    // a cualquier distancia entre sí.
+    const yCuenca = Number(cuenca.getAttribute('y'))
+    const yLeyenda = Number(leyenda.getAttribute('y'))
+    expect(yCuenca, 'la cuenca tiene que ir arriba de la leyenda de profundidad').toBeLessThan(yLeyenda)
+    expect(yLeyenda - yCuenca, 'las dos leyendas se separaron demasiado para leer como un bloque').toBeLessThanOrEqual(20)
+  })
+
+  it('el rótulo de la cuenca vive dentro de .corte__escala: se esconde y se hunde con la leyenda sin reglas propias', () => {
+    const caja = montar()
+    expect(caja.querySelector('.corte__escala .corte__cuenca')).not.toBeNull()
   })
 })

@@ -1,8 +1,17 @@
 /* ---------- El hero: capa sobre el mapa, con su propio contexto ---------- */
+/* z-index: 2000 y no 500 (revisión de la Tarea 8, hallazgo 1): el mapa se
+   monta siempre, debajo (E2), y Leaflet declara sus propios z-index para
+   controles y paneles -- .leaflet-control en 800, el contenedor que los
+   posiciona (.leaflet-top/.leaflet-bottom) en 1000, el más alto del paquete
+   (node_modules/leaflet/dist/leaflet.css). En 500 el hero quedaba por debajo
+   de los dos, así que el control de zoom, el selector de capas y la
+   atribución se veían A TRAVÉS del corte -- visible en la captura del hero
+   en reposo. 2000 deja margen sobre el máximo que Leaflet declara, no sólo
+   lo supera por poco. */
 .hero {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   background: var(--papel);
@@ -343,12 +352,16 @@
 
 /* ---------- Acto VI: el relevo ---------- */
 .hero--saliendo { animation: hero-irse 600ms cubic-bezier(.4,0,1,1) both; }
-/* `.corte__cuenca` es un hermano suelto del `<svg>` -no vive dentro de
-   `.corte__subsuelo`- así que sin sumarlo acá se queda quieto mientras el
-   resto del subsuelo se hunde (visible en la captura del relevo, Tarea 7,
-   Minor 6). Rotula el subsuelo, así que se hunde con él. */
+/* Hasta la Tarea 7, `.corte__cuenca` era un hermano suelto del `<svg>` -no
+   vivía dentro de `.corte__subsuelo`- y había que sumarlo acá a mano para
+   que no quedara quieto mientras el resto del subsuelo se hundía (Minor 6).
+   Desde la Tarea 8 (revisión, hallazgo 2) vive DENTRO de `.corte__escala`
+   -reubicado junto a la leyenda de profundidad-, así que hereda la animación
+   del grupo con sólo tres selectores, no cuatro: un `transform`/`opacity`
+   animado en el padre se ve en los hijos sin que cada uno necesite su propia
+   regla. */
 .hero--saliendo .corte__subsuelo, .hero--saliendo .corte__pozos,
-.hero--saliendo .corte__escala, .hero--saliendo .corte__cuenca {
+.hero--saliendo .corte__escala {
   animation: corte-hundirse 600ms cubic-bezier(.4,0,1,1) both;
 }
 .hero--saliendo .hero__texto, .hero--saliendo .corte__superficie {
@@ -404,9 +417,11 @@
      bajo el título. Los conteos siguen en el manifiesto y en el dibujo de
      escritorio: lo que se oculta acá es una capa de enriquecimiento, no el
      dato que el sitio entrega, que es el CSV. */
+  /* .corte__cuenca no necesita entrar en esta lista desde la Tarea 8: vive
+     dentro de .corte__escala (revisión, hallazgo 2), así que ocultar el
+     grupo ya se lo lleva puesto. */
   .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
-  .corte__escala,
-  .corte__cuenca { display: none; }
+  .corte__escala { display: none; }
 
   /* El rótulo de la roca madre sí queda (es el foco), pero completo
      ("VACA MUERTA · ROCA MADRE · 3.547 pozos", arrancando en x=74) no entra
