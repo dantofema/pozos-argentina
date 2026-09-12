@@ -59,10 +59,18 @@ export function crearHero(contenedor, { manifiesto }) {
   cajaBuscador.addEventListener('focusout', alDesenfocar)
   document.addEventListener('visibilitychange', alCambiarVisibilidad)
 
+  // crearBuscador() pone su propia escucha de click en `document` (para
+  // cerrar la lista al clickear afuera), que sobrevive a que este contenedor
+  // se destruya si nadie la saca -en `main.js` nunca importa, ese buscador
+  // vive mientras vive la página; acá sí, porque el hero se releva- (Important
+  // 1, revisión). Se completa recién cuando montarBuscador() corre.
+  let desconectarBuscador = null
+
   function desconectar() {
     cajaBuscador.removeEventListener('focusin', alEnfocar)
     cajaBuscador.removeEventListener('focusout', alDesenfocar)
     document.removeEventListener('visibilitychange', alCambiarVisibilidad)
+    desconectarBuscador?.()
   }
 
   coreografia.entrar()
@@ -72,8 +80,8 @@ export function crearHero(contenedor, { manifiesto }) {
 
     /** Llega cuando el índice cargó: recién ahí se puede buscar (G6). */
     montarBuscador(facetas, alElegir) {
-      cajaBuscador.innerHTML = ''
-      crearBuscador(cajaBuscador, facetas, alElegir)
+      const buscador = crearBuscador(cajaBuscador, facetas, alElegir)
+      desconectarBuscador = buscador.desconectar
     },
 
     /** El relevo: el corte se hunde y el hero se saca del DOM. */

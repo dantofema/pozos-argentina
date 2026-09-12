@@ -285,4 +285,24 @@ describe('la lista de sugerencias', () => {
 
     expect(lista().hidden).toBe(false)
   })
+
+  // El click afuera se resuelve con una escucha en `document`, no en
+  // `contenedor`: sobrevive aunque el contenedor se destruya, y queda
+  // apuntando a un nodo ya desmontado en cada click futuro de la página. En
+  // `main.js` nunca importó -este buscador vive mientras vive la página-,
+  // pero el del hero se destruye en `relevar()` (Tarea 7, revisión Important
+  // 1). `desconectar()` la saca.
+  it('desconectar() saca la escucha de click en document, sin romper a quien no la usa', () => {
+    const buscador = crearBuscador(contenedor, facetas, () => {})
+    escribir('tordillo')
+    buscador.desconectar()
+
+    const afuera = document.createElement('button')
+    document.body.appendChild(afuera)
+    afuera.click()
+
+    // Sin la escucha, un click afuera ya no cierra la lista.
+    expect(lista().hidden).toBe(false)
+    afuera.remove()
+  })
 })

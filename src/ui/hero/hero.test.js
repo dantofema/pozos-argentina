@@ -159,12 +159,49 @@ describe('crearHero', () => {
     expect(banda).not.toMatch(/undefined|NaN/)
   })
 
-  it('saca sus escuchas del document al irse', () => {
+  // El flujo real: montarBuscador() agrega SU PROPIA escucha de click en
+  // document (para cerrar la lista al clickear afuera) además de las que
+  // pone hero.js. Un test que nunca llama a montarBuscador() no puede ver
+  // esa fuga -es la que encontró la revisión (Important 1)-, así que este
+  // pasa por el camino completo: montar, elegir, y recién ahí relevar.
+  it('saca sus escuchas del document al irse, incluida la del buscador montado (Important 1)', () => {
+    const agregados = []
+    const sacados = []
+    const addOriginal = document.addEventListener.bind(document)
+    const removeOriginal = document.removeEventListener.bind(document)
+    vi.spyOn(document, 'addEventListener').mockImplementation((tipo, fn, opciones) => {
+      agregados.push(tipo)
+      return addOriginal(tipo, fn, opciones)
+    })
+    vi.spyOn(document, 'removeEventListener').mockImplementation((tipo, fn, opciones) => {
+      sacados.push(tipo)
+      return removeOriginal(tipo, fn, opciones)
+    })
+
     const hero = crearHero(contenedor, { manifiesto: MANIFIESTO })
+    const elegido = vi.fn()
+    hero.montarBuscador(FACETAS, elegido)
+
+    const entrada = contenedor.querySelector('.hero__buscador .buscador__entrada')
+    entrada.value = 'loma'
+    entrada.dispatchEvent(new Event('input'))
+    contenedor.querySelector('.buscador__opcion').click()
+    expect(elegido).toHaveBeenCalled()
+
     hero.relevar()
     vi.advanceTimersByTime(DURACIONES.SALIDA)
 
-    // Si la escucha siguiera puesta, esto tiraría sobre un nodo ya removido.
+    // Por tipo de evento: lo que se agregó en document durante el flujo se
+    // tiene que haber sacado, uno a uno -- ni de más ni de menos.
+    const contar = (arr, tipo) => arr.filter((t) => t === tipo).length
+    for (const tipo of new Set(agregados)) {
+      expect(contar(sacados, tipo), `"${tipo}" en document: agregado ${contar(agregados, tipo)}, sacado ${contar(sacados, tipo)}`)
+        .toBe(contar(agregados, tipo))
+    }
+    expect(agregados, 'no se agregó ninguna escucha en document: el test no está probando nada').not.toHaveLength(0)
+
+    // Si alguna escucha siguiera puesta, esto tiraría sobre un nodo ya removido.
     expect(() => document.dispatchEvent(new Event('visibilitychange'))).not.toThrow()
+    expect(() => document.dispatchEvent(new Event('click'))).not.toThrow()
   })
 })

@@ -132,9 +132,16 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   entrada.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { cerrarLista(); e.stopPropagation() }
   })
-  document.addEventListener('click', (e) => {
+  // En `document` y no en `contenedor`: es la única forma de detectar un click
+  // AFUERA del buscador. Pero eso la hace sobrevivir aunque `contenedor` se
+  // destruya -el buscador de la herramienta vive mientras vive la página, así
+  // que ahí nunca importó-, y queda un closure apuntando a un nodo desmontado
+  // que corre en cada click futuro. `desconectar()` la saca; quien no la
+  // necesita (`main.js`) simplemente ignora el valor de retorno.
+  const alClickearAfuera = (e) => {
     if (!contenedor.contains(e.target)) cerrarLista()
-  })
+  }
+  document.addEventListener('click', alClickearAfuera)
 
   return {
     limpiar: limpiarTodo,
@@ -153,6 +160,12 @@ export function crearBuscador(contenedor, facetas, alElegir) {
       } else {
         limpiarTodo()
       }
+    },
+
+    /** Saca la escucha de `document`. Necesario para quien destruye el
+     * contenedor mientras la página sigue viva (el hero, Tarea 7). */
+    desconectar() {
+      document.removeEventListener('click', alClickearAfuera)
     },
   }
 }
