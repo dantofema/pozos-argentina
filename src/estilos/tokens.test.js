@@ -26,8 +26,8 @@ function contraste(a, b) {
 describe('tokens', () => {
   const t = crudos()
 
-  it('define los seis colores en sus dos temas', () => {
-    for (const nombre of ['papel', 'tinta', 'cobre', 'vaca', 'apagado', 'linea']) {
+  it('define los siete colores en sus dos temas', () => {
+    for (const nombre of ['papel', 'tinta', 'cobre', 'vaca', 'apagado', 'linea', 'superficie']) {
       expect(t[`${nombre}-claro`], `falta --c-${nombre}-claro`).toMatch(/^#[0-9a-fA-F]{6}$/)
       expect(t[`${nombre}-oscuro`], `falta --c-${nombre}-oscuro`).toMatch(/^#[0-9a-fA-F]{6}$/)
     }
@@ -41,6 +41,14 @@ describe('tokens', () => {
       for (const nombre of ['tinta', 'cobre', 'vaca', 'apagado']) {
         const r = contraste(t[`${nombre}-${tema}`], fondo)
         expect(r, `--c-${nombre}-${tema} da ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it(`todo texto del tema ${tema} pasa AA sobre la superficie`, () => {
+      const fondo = t[`superficie-${tema}`]
+      for (const nombre of ['tinta', 'cobre', 'vaca', 'apagado']) {
+        const r = contraste(t[`${nombre}-${tema}`], fondo)
+        expect(r, `--c-${nombre}-${tema} da ${r.toFixed(2)}:1 sobre superficie`).toBeGreaterThanOrEqual(4.5)
       }
     })
 

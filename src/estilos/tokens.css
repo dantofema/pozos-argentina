@@ -16,16 +16,19 @@
   --c-vaca-oscuro:   #7FB2BA;
   --c-apagado-claro: #6B6257;
   --c-apagado-oscuro:#93A2AA;
-  --c-linea-claro:   #D8D2C7;
-  --c-linea-oscuro:  #26323A;
+  --c-linea-claro:      #D8D2C7;
+  --c-linea-oscuro:     #26323A;
+  --c-superficie-claro: #FBFAF7;
+  --c-superficie-oscuro:#1C242A;
 
   /* Tokens de uso. Todo el resto de la hoja habla sólo con estos. */
-  --papel:   var(--c-papel-claro);
-  --tinta:   var(--c-tinta-claro);
-  --cobre:   var(--c-cobre-claro);
-  --vaca:    var(--c-vaca-claro);
-  --apagado: var(--c-apagado-claro);
-  --linea:   var(--c-linea-claro);
+  --papel:      var(--c-papel-claro);
+  --tinta:      var(--c-tinta-claro);
+  --cobre:      var(--c-cobre-claro);
+  --vaca:       var(--c-vaca-claro);
+  --apagado:    var(--c-apagado-claro);
+  --linea:      var(--c-linea-claro);
+  --superficie: var(--c-superficie-claro);
 
   --serif:  "Source Serif 4", Georgia, "Times New Roman", serif;
   --rotulo: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
@@ -38,21 +41,23 @@
 /* Cianotipo por preferencia del sistema, salvo que se haya elegido papel. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="papel"]) {
-    --papel:   var(--c-papel-oscuro);
-    --tinta:   var(--c-tinta-oscuro);
-    --cobre:   var(--c-cobre-oscuro);
-    --vaca:    var(--c-vaca-oscuro);
-    --apagado: var(--c-apagado-oscuro);
-    --linea:   var(--c-linea-oscuro);
+    --papel:      var(--c-papel-oscuro);
+    --tinta:      var(--c-tinta-oscuro);
+    --cobre:      var(--c-cobre-oscuro);
+    --vaca:       var(--c-vaca-oscuro);
+    --apagado:    var(--c-apagado-oscuro);
+    --linea:      var(--c-linea-oscuro);
+    --superficie: var(--c-superficie-oscuro);
   }
 }
 
 /* Y por elección explícita, que tiene que ganar en las dos direcciones. */
 :root[data-tema="cianotipo"] {
-  --papel:   var(--c-papel-oscuro);
-  --tinta:   var(--c-tinta-oscuro);
-  --cobre:   var(--c-cobre-oscuro);
-  --vaca:    var(--c-vaca-oscuro);
-  --apagado: var(--c-apagado-oscuro);
-  --linea:   var(--c-linea-oscuro);
+  --papel:      var(--c-papel-oscuro);
+  --tinta:      var(--c-tinta-oscuro);
+  --cobre:      var(--c-cobre-oscuro);
+  --vaca:       var(--c-vaca-oscuro);
+  --apagado:    var(--c-apagado-oscuro);
+  --linea:      var(--c-linea-oscuro);
+  --superficie: var(--c-superficie-oscuro);
 }
