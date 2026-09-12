@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { construirFacetas, buscar, normalizar, cargarCatalogo } from './catalogo.js'
+import {
+  construirFacetas,
+  buscar,
+  normalizar,
+  cargarCatalogo,
+  cargarManifiesto,
+  cargarIndice,
+} from './catalogo.js'
 import { LITE } from './esquema.js'
 
 const catalogo = {
@@ -165,5 +172,49 @@ describe('cargarCatalogo', () => {
     responder({ 'pozos-lite.json': { dicts: {} }, 'manifiesto.json': MANIFIESTO_OK })
 
     await expect(cargarCatalogo('/')).rejects.toThrow(/no tiene la forma esperada/)
+  })
+})
+
+describe('carga partida en manifiesto e índice (G6)', () => {
+  const LITE_OK = { dicts: { cuenca: ['NEUQUINA'] }, rows: [[7, -68.6, -38.3, 0, 0, 0, 0, 0]] }
+  const MANIFIESTO_OK = { pozos: 1, ultimoPeriodo: 202607, generado: '2026-09-12T00:00:00.000Z' }
+
+  afterEach(() => { delete globalThis.fetch })
+
+  it('cargarManifiesto pide un solo archivo, el chico', async () => {
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => MANIFIESTO_OK }))
+
+    const m = await cargarManifiesto('/')
+
+    expect(m.pozos).toBe(1)
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(String(globalThis.fetch.mock.calls[0][0])).toContain('manifiesto.json')
+  })
+
+  it('cargarIndice pide sólo el índice y lo valida', async () => {
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => LITE_OK }))
+
+    const i = await cargarIndice('/')
+
+    expect(i.porId.get(7)).toBe(i.rows[0])
+    expect(String(globalThis.fetch.mock.calls[0][0])).toContain('pozos-lite.json')
+  })
+
+  it('cargarIndice rechaza un índice sin forma, y no más adentro', async () => {
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ dicts: {} }) }))
+    await expect(cargarIndice('/')).rejects.toThrow(/no tiene la forma esperada/)
+  })
+
+  it('cargarCatalogo sigue devolviendo las dos cosas juntas', async () => {
+    globalThis.fetch = vi.fn(async (url) => ({
+      ok: true,
+      json: async () => (String(url).includes('manifiesto') ? MANIFIESTO_OK : LITE_OK),
+    }))
+
+    const c = await cargarCatalogo('/')
+
+    expect(c.manifiesto.pozos).toBe(1)
+    expect(c.porId.get(7)).toBeDefined()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
 })

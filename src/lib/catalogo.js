@@ -34,19 +34,30 @@ async function pedirJson(url) {
   return r.json()
 }
 
-/** Carga el índice y el manifiesto que dejó el build. */
-export async function cargarCatalogo(base = import.meta.env.BASE_URL) {
-  const [lite, manifiesto] = await Promise.all([
-    pedirJson(`${base}pozos-lite.json`),
-    pedirJson(`${base}manifiesto.json`),
-  ])
+/** El manifiesto: 2,8 kB. Es lo único que el hero necesita para empezar (G6). */
+export async function cargarManifiesto(base = import.meta.env.BASE_URL) {
+  return pedirJson(`${base}manifiesto.json`)
+}
+
+/** El índice: 1,26 MB gzip. Es lo que habilita buscar (G6). */
+export async function cargarIndice(base = import.meta.env.BASE_URL) {
+  const lite = await pedirJson(`${base}pozos-lite.json`)
   // Sin esto, un índice a medio generar explota más adentro con un TypeError
   // que no dice qué archivo estaba mal.
   if (!lite || !Array.isArray(lite.rows) || !lite.dicts) {
     throw new Error('pozos-lite.json no tiene la forma esperada (rows + dicts)')
   }
-  const porId = new Map(lite.rows.map((f) => [f[LITE.ID], f]))
-  return { dicts: lite.dicts, rows: lite.rows, manifiesto, porId }
+  return {
+    dicts: lite.dicts,
+    rows: lite.rows,
+    porId: new Map(lite.rows.map((f) => [f[LITE.ID], f])),
+  }
+}
+
+/** Las dos cosas, para quien las quiera juntas. */
+export async function cargarCatalogo(base = import.meta.env.BASE_URL) {
+  const [indice, manifiesto] = await Promise.all([cargarIndice(base), cargarManifiesto(base)])
+  return { ...indice, manifiesto }
 }
 
 /** Arma la lista buscable, con la cantidad de pozos de cada valor. */

@@ -1,5 +1,5 @@
 import './style.css'
-import { cargarCatalogo, construirFacetas } from './lib/catalogo.js'
+import { cargarManifiesto, cargarIndice, construirFacetas } from './lib/catalogo.js'
 import { porFaceta, porPoligono, cuencasDe } from './lib/ambito.js'
 import { cargarDetalle } from './lib/detalle.js'
 import { construirCsv } from './lib/csv.js'
@@ -9,6 +9,7 @@ import { crearMapa } from './ui/mapa.js'
 import { crearBuscador } from './ui/buscador.js'
 import { crearHerramientas } from './ui/herramientas.js'
 import { crearPanelDescarga, nombreArchivo, descargarCsv } from './ui/descarga.js'
+import { crearHero } from './ui/hero/hero.js'
 
 const app = document.querySelector('#app')
 app.innerHTML = `
@@ -29,24 +30,40 @@ app.innerHTML = `
       <div id="descarga"></div>
       <p class="pie" id="pie"></p>
     </aside>
-  </div>`
+  </div>
+  <div id="hero"></div>`
 
 // Todo lo que sigue depende de que el catálogo haya cargado. Si `cargarCatalogo`
 // rechaza (fetch caído, JSON roto), el catch deja un mensaje visible en el pie
 // en vez de una página con el buscador, la descarga y el mapa vacíos y sin
 // ninguna señal de que algo salió mal.
 try {
-  const catalogo = await cargarCatalogo()
-  const facetas = construirFacetas(catalogo)
+  // Los dos pedidos salen juntos y se esperan por separado: el manifiesto son
+  // 2,8 kB y monta el hero enseguida; el índice son 1,26 MB y habilita buscar.
+  // En serie, el hero esperaría al índice y la pantalla seguiría en blanco.
+  const pedidoManifiesto = cargarManifiesto()
+  const pedidoIndice = cargarIndice()
+
+  const estadoInicial = leerEstado(location.search)
+  const manifiesto = await pedidoManifiesto
 
   const mapa = crearMapa(document.querySelector('#mapa'))
   const panel = crearPanelDescarga(document.querySelector('#descarga'))
 
-  const m = catalogo.manifiesto
   document.querySelector('#pie').textContent =
-    `${m.pozos.toLocaleString('es-AR')} pozos · producción hasta ${periodoLegible(m.ultimoPeriodo)} · ` +
-    `datos generados el ${m.generado.slice(0, 10)}. ` +
+    `${manifiesto.pozos.toLocaleString('es-AR')} pozos · producción hasta ${periodoLegible(manifiesto.ultimoPeriodo)} · ` +
+    `datos generados el ${manifiesto.generado.slice(0, 10)}. ` +
     'Sitio no oficial: no representa a la Secretaría de Energía.'
+
+  // El hero sólo existe para quien llega sin nada en la URL: un enlace
+  // compartido entra directo a la herramienta (E1).
+  const hero = estadoInicial.modo === 'vacio'
+    ? crearHero(document.querySelector('#hero'), { manifiesto })
+    : null
+
+  const indice = await pedidoIndice
+  const catalogo = { ...indice, manifiesto }
+  const facetas = construirFacetas(catalogo)
 
   /**
    * Punto único de sincronización. `aplicar` la envuelve para contener los
@@ -56,6 +73,10 @@ try {
    * sin ninguna señal.
    */
   async function sincronizar(estado, { empujarHistorial = true } = {}) {
+    // El relevo es de una sola vía: el hero es una entrada, no un estado al que
+    // se vuelva. "Volver al inicio" y el botón Atrás no lo reponen (E3).
+    if (estado.modo !== 'vacio') hero?.relevar()
+
     // La zona dibujada se queda en el mapa mientras sea el ámbito elegido, y se
     // va apenas el ámbito pasa a ser otra cosa.
     if (estado.modo === 'poligono') mapa.mostrarZona(estado.poligono)
@@ -95,7 +116,7 @@ try {
     else mapa.encuadrar(filasLite)
 
     panel.mostrar({
-      filas: filasDelAmbito(estado, ids.length, m.ultimoPeriodo),
+      filas: filasDelAmbito(estado, ids.length, manifiesto.ultimoPeriodo),
       alDescargar: async () => {
         const detalle = await cargarDetalle(cuencasDe(catalogo, ids))
         const filas = ids.map((id) => detalle.get(id)).filter(Boolean)
@@ -121,6 +142,13 @@ try {
       valor: faceta.valor,
       cuenca: faceta.cuenca ?? null,
       poligono: null,
+    })
+  })
+
+  hero?.montarBuscador(facetas, (faceta) => {
+    aplicar({
+      modo: 'faceta', tipo: faceta.tipo, valor: faceta.valor,
+      cuenca: faceta.cuenca ?? null, poligono: null,
     })
   })
 
