@@ -228,7 +228,7 @@ export function construirCorte({ formaciones, pozos, periodo }) {
 
   return `
 <svg class="corte" viewBox="0 0 ${ANCHO} ${ALTO}" role="img"
-     preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+     preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
   <title>Corte geológico esquemático de la cuenca Neuquina</title>
   <desc>Sobre la superficie, tres balancines, una torre de perforación y una
   antorcha con su llama. Bajo la superficie, nueve formaciones en orden

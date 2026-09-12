@@ -4,14 +4,21 @@
   inset: 0;
   z-index: 500;
   display: grid;
-  grid-template-rows: 1fr auto;
+  /* Tres filas: el título arriba, el dibujo absorbiendo lo que queda, y el
+     buscador abajo con su alto intrínseco garantizado. Con dos filas --dibujo
+     arriba y todo el texto abajo-- el buscador se caía fuera del viewport en
+     la mitad de los tamaños probados, porque competía con el título por la
+     misma fila `auto` (medido con getBoundingClientRect(), Tarea 6 §9). Es
+     además la composición que se aprobó: título, ilustración, buscador; la
+     había desviado esta hoja al principio. */
+  grid-template-rows: auto 1fr auto;
   background: var(--papel);
   overflow: hidden;
 }
 
 .hero__texto {
-  align-self: end;
-  padding: 0 clamp(20px, 5vw, 72px);
+  align-self: start;
+  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) 0;
   max-width: 46ch;
 }
 .hero__titulo {
@@ -36,33 +43,29 @@
 /* El corte reserva su caja desde el primer cuadro, antes de tener datos: sin
    esto el hero salta de alto cuando llega el manifiesto (E6).
 
-   `width: 100%` no es cosmético: sin un ancho explícito en el eje inline,
-   este grid de una sola columna no estira la caja horizontalmente --
-   `align-self: stretch` sólo gobierna el eje de bloque (el alto)-- y con
-   `aspect-ratio` puesto el ancho terminaba derivándose del alto en vez de
-   estirarse: la caja quedaba angosta y centrada, con el corte recortado al
-   40-50% del ancho real (medido con getBoundingClientRect() contra el
-   markup de la Tarea 7). Con `width: 100%` el ancho queda explícito y deja
-   de haber nada que `aspect-ratio` tenga que resolver en ese eje.
+   `width: 100%` sigue siendo obligatorio: sin un ancho explícito, este grid
+   de una sola columna no estira la caja en el eje horizontal (`align-self:
+   stretch` sólo gobierna el eje de bloque), y el dibujo terminaba ocupando
+   40-50% del ancho con el resto en blanco (medido con getBoundingClientRect()
+   contra el markup real de la Tarea 7, ver el reporte de la Tarea 6 §9).
 
-   El alto lo sigue fijando `align-self: stretch` contra lo que sobre en la
-   fila `1fr`, o el piso de `min-height`, lo que sea mayor -- `aspect-ratio`
-   no llega a aplicarse tampoco ahí, porque los dos ejes ya quedan resueltos
-   por otra vía. La caja casi nunca respeta 1200:720 de verdad, así que el
-   `slice` de `corte.js` recorta bastante y, contra el título real de la
-   Tarea 7, a viewports típicos se come formaciones enteras -- incluida
-   Vaca Muerta a 1920×1080. Es un problema real del presupuesto vertical del
-   hero (título + bajada + dato + buscador + corte no entran juntos en un
-   viewport típico), no resuelto acá: detalle y evidencia en el reporte de
-   la Tarea 6. */
+   Ya NO lleva `aspect-ratio` fijo: la fila `1fr` le da el alto que sobra, y
+   el `meet` de `corte.js` (antes `slice`) encaja el dibujo entero adentro sin
+   recortar nada, sea cual sea esa altura -- con `aspect-ratio` puesto, los
+   dos (la fila y la relación fija) peleaban por mandar en el alto, y era
+   `slice` quien terminaba recortando formaciones enteras para disimular el
+   desacuerdo (Vaca Muerta entera a 1920×1080, ver la Tarea 6 §9-10). */
 .hero__dibujo {
   position: relative;
   width: 100%;
-  min-height: 42vh;
-  aspect-ratio: 1200 / 720;
+  min-height: 30vh;
   align-self: stretch;
 }
 .corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
+/* La lista de resultados del buscador se posiciona `absolute` y su bloque
+   contenedor es el ancestro posicionado más cercano. Dentro del hero eso
+   sería `.hero`, que es `fixed`: sin esto la lista aparece en otro lado. */
+.hero__buscador { position: relative; }
 
 /* ---------- El dibujo en reposo, sin animación ---------- */
 .corte__horizonte { stroke: var(--tinta); stroke-width: 2.2; }
@@ -295,7 +298,16 @@
 
 /* ---------- Angosto ---------- */
 @media (max-width: 720px) {
-  .hero { grid-template-rows: auto 1fr; }
-  .hero__dibujo { min-height: 34vh; order: 2; }
-  .hero__texto { align-self: start; padding-top: 6vh; }
+  .hero__dibujo { min-height: 26vh; }
+  /* A este ancho el dibujo entero entra en una franja chica y sus rótulos
+     caen a unos cuatro píxeles: ilegibles (13,5px en escritorio grande,
+     10,3px en escritorio, 7,9px en laptop, 4,2px en móvil). Se ocultan los
+     secundarios y queda el de la roca madre, que es el foco. Preferible un
+     dibujo simplificado y legible a nueve rótulos que nadie puede leer. Los
+     conteos siguen en el manifiesto y en el dibujo de escritorio: lo que se
+     oculta acá es una capa de enriquecimiento, no el dato que el sitio
+     entrega, que es el CSV. */
+  .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
+  .corte__escala,
+  .corte__cuenca { display: none; }
 }
