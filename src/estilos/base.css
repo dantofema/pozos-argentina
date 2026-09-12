@@ -1,0 +1,27 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  display: grid;
+  /* Tres filas: encabezado, barra de búsqueda, y el área de trabajo, que es la
+     que absorbe el espacio libre. */
+  grid-template-rows: auto auto 1fr;
+  /* min-height y no height: si la barra se envuelve en una pantalla baja, el
+     mapa llega a su piso y algo tiene que ceder. Con `height` la página
+     scrollea igual pero peleando contra un alto fijo; con `min-height` crece
+     y scrollea de forma natural, y cuando hay lugar el mapa sigue absorbiendo
+     el espacio libre. */
+  min-height: 100vh;
+  background: var(--papel);
+  color: var(--tinta);
+  font: 16px/1.6 var(--serif);
+}
+
+#app { display: contents; }
+
+/* ---------- 1. Encabezado ---------- */
+.cabecera { padding: 18px 24px 6px; }
+.cabecera h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.cabecera__bajada { margin: 6px 0 0; color: var(--apagado); max-width: 62ch; font-size: 14.5px; }
+
+[hidden] { display: none !important; }

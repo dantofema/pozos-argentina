@@ -1,0 +1,58 @@
+/* Los dos temas. Papel y cianotipo son las dos tradiciones reales del dibujo
+   geológico: el informe impreso y la copia heliográfica. Ninguna se parece a la
+   consola azul de indec-descargas, que es de lo que hay que diferenciarse.
+
+   Cada hex vive UNA sola vez, acá, como par claro/oscuro. Los bloques de tema de
+   más abajo sólo reapuntan los tokens de uso a uno u otro: así no hay dos
+   lugares donde cambiar un color, y el test de contraste lee una sola fuente. */
+:root {
+  --c-papel-claro:   #F2EFE9;
+  --c-papel-oscuro:  #141A1E;
+  --c-tinta-claro:   #1A1714;
+  --c-tinta-oscuro:  #E8EDF0;
+  --c-cobre-claro:   #A8481C;
+  --c-cobre-oscuro:  #E8853F;
+  --c-vaca-claro:    #2E4A4F;
+  --c-vaca-oscuro:   #7FB2BA;
+  --c-apagado-claro: #6B6257;
+  --c-apagado-oscuro:#93A2AA;
+  --c-linea-claro:   #D8D2C7;
+  --c-linea-oscuro:  #26323A;
+
+  /* Tokens de uso. Todo el resto de la hoja habla sólo con estos. */
+  --papel:   var(--c-papel-claro);
+  --tinta:   var(--c-tinta-claro);
+  --cobre:   var(--c-cobre-claro);
+  --vaca:    var(--c-vaca-claro);
+  --apagado: var(--c-apagado-claro);
+  --linea:   var(--c-linea-claro);
+
+  --serif:  "Source Serif 4", Georgia, "Times New Roman", serif;
+  --rotulo: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
+  --mono:   "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* 3px y no 8px: el radio grande de indec lee software; el chico lee papel. */
+  --radio: 3px;
+}
+
+/* Cianotipo por preferencia del sistema, salvo que se haya elegido papel. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="papel"]) {
+    --papel:   var(--c-papel-oscuro);
+    --tinta:   var(--c-tinta-oscuro);
+    --cobre:   var(--c-cobre-oscuro);
+    --vaca:    var(--c-vaca-oscuro);
+    --apagado: var(--c-apagado-oscuro);
+    --linea:   var(--c-linea-oscuro);
+  }
+}
+
+/* Y por elección explícita, que tiene que ganar en las dos direcciones. */
+:root[data-tema="cianotipo"] {
+  --papel:   var(--c-papel-oscuro);
+  --tinta:   var(--c-tinta-oscuro);
+  --cobre:   var(--c-cobre-oscuro);
+  --vaca:    var(--c-vaca-oscuro);
+  --apagado: var(--c-apagado-oscuro);
+  --linea:   var(--c-linea-oscuro);
+}
