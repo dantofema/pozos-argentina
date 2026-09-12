@@ -1,3 +1,28 @@
+/* Las tres son variables: un archivo por familia cubre todos los pesos, y el
+   rango va en `font-weight`. `swap` para que el texto se lea desde el primer
+   cuadro con la del sistema (T3). */
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fuentes/source-serif-4.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo Narrow";
+  src: url("../fuentes/archivo-narrow.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../fuentes/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 * { box-sizing: border-box; }
 
 body {
