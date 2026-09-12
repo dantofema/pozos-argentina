@@ -10,9 +10,10 @@ Se verificó sobre 5.089 pozos: 5.088 están invertidos. No se usan nunca.
 
 `geojson` es la mejor geometría que publica el origen, no una geometría confiable:
 **la misma transposición aparece adentro del propio `geojson`**, en unos pocos pozos.
-En el volcado del 2026-09-11 eran 2 de 85.611 —`10143 SJ.RN.LN-7` y
-`162058 PBE.Nq.M-1063(d)`, ambos declarados en cuencas argentinas y publicados con
-un punto que cae en el océano Índico—. Por eso `coordenadas()` pasa cada punto por
+En los volcados del 2026-09-11 y del 2026-09-12 eran los mismos 2 de 85.611
+—`10143 SJ.RN.LN-7` y `162058 PBE.Nq.M-1063(d)`, ambos declarados en cuencas
+argentinas y publicados con un punto que cae en el océano Índico—, así que el
+índice publicado tiene 85.609. Por eso `coordenadas()` pasa cada punto por
 una caja de plausibilidad (`CAJA_ARGENTINA` en `scripts/lib/artefactos.mjs`) y
 **descarta** el que queda afuera: no lo corrige. Invertir lon/lat por nuestra cuenta
 sería publicar una coordenada que el origen nunca dijo, y no hay forma de distinguir
@@ -26,7 +27,7 @@ agregado de producción por `idpozo`, y si no hay ninguno el pozo queda igual, c
 `meses = 0` y acumulados en cero.
 
 Con `INNER JOIN` esos pozos desaparecían sin que nadie se entere. El build de referencia
-midió **520 pozos sin producción, sobre 85.611 en total**. La cifra exacta no es una
+midió **520 pozos sin producción, sobre 85.609 en total**. La cifra exacta no es una
 constante: la lleva cada build en `sinProduccion` de `manifiesto.json`, y baja a medida que
 se declara producción atrasada.
 

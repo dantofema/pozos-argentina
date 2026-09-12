@@ -16,7 +16,7 @@ Este sitio no es oficial ni representa a la Secretaría de Energía.
 
 ## Estado
 
-Funcionando. El sitio busca sobre 85.611 pozos, los pinta en el mapa y arma el CSV en
+Funcionando. El sitio busca sobre 85.609 pozos, los pinta en el mapa y arma el CSV en
 el navegador. No hace ninguna llamada al origen: todo sale de artefactos generados por
 `npm run build:index`.
 
@@ -28,7 +28,8 @@ npm run build:index   # baja del origen y arma public/ — tarda varios minutos
 npm run dev
 ```
 
-`npm test` corre los tests unitarios, sin red. `npm run test:contrato` pega contra el
-origen vivo para verificar que nada cambió del otro lado.
+`npm test` corre los tests unitarios, sin red. `npm run coverage` los corre midiendo
+cobertura. `npm run test:contrato` pega contra el origen vivo para verificar que nada
+cambió del otro lado; tarda minutos y no corre en `npm test`.
 
 Las reglas de datos están en [`docs/reglas/datos.md`](docs/reglas/datos.md).
