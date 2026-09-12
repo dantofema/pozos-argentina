@@ -150,4 +150,59 @@ describe('construirCorte', () => {
     construirCorte({ formaciones: MANIFIESTO, pozos: 85609, periodo: 202607 })
     expect(document.body.innerHTML).toBe(antes)
   })
+
+  // --- Fix round: §7.1 completo y colisiones de rótulo, halladas al renderizar ---
+
+  it('dibuja la línea de la estepa sobre el horizonte, distinta de la recta (§7.1)', () => {
+    const caja = montar()
+    const estepa = caja.querySelector('.corte__superficie .corte__estepa')
+    expect(estepa).not.toBeNull()
+    expect(estepa).not.toBe(caja.querySelector('.corte__horizonte'))
+  })
+
+  it('dibuja una torre de perforación quieta, sobre la superficie (§7.1)', () => {
+    const torre = montar().querySelector('.corte__superficie .corte__torre')
+    expect(torre).not.toBeNull()
+  })
+
+  it('dibuja una antorcha con su llama en un elemento propio, sobre un mástil (§7.1)', () => {
+    const antorcha = montar().querySelector('.corte__superficie .corte__antorcha')
+    expect(antorcha).not.toBeNull()
+    expect(antorcha.querySelector('.antorcha__llama')).not.toBeNull()
+  })
+
+  it('el <desc> nombra la antorcha: el alt text no puede describir lo que no está dibujado', () => {
+    const desc = montar().querySelector('svg desc').textContent.toLowerCase()
+    expect(desc).toContain('antorcha')
+    expect(desc).toMatch(/roca madre/i)
+  })
+
+  it('los rótulos de formación no arrancan en la misma banda de x que la escala de profundidad', () => {
+    const caja = montar()
+    const xEscala = Number(caja.querySelector('.corte__marca text').getAttribute('x'))
+    const xRotulos = [...caja.querySelectorAll('.corte__rotulo')].map((t) => Number(t.getAttribute('x')))
+    expect(xRotulos.length).toBeGreaterThan(0)
+    for (const x of xRotulos) {
+      expect(x, 'un rótulo de banda quedó en el canal de la escala').toBeGreaterThan(xEscala + 40)
+    }
+  })
+
+  it('el balancín tiene cabeza de caballo en la viga, la seña que lo hace reconocible', () => {
+    const caja = montar()
+    for (const b of caja.querySelectorAll('.balancin')) {
+      expect(b.querySelector('.balancin__viga .balancin__cabeza')).not.toBeNull()
+    }
+  })
+
+  it('el contrapeso cuelga de una manivela cerca de la base, no de la punta de la viga', () => {
+    const caja = montar()
+    for (const b of caja.querySelectorAll('.balancin')) {
+      expect(b.querySelector('.balancin__manivela')).not.toBeNull()
+      const contrapeso = b.querySelector('.balancin__contrapeso')
+      const [, , ty] = contrapeso.getAttribute('transform').match(/translate\(([-\d.]+)[ ,]([-\d.]+)\)/)
+      // La punta de la viga está en y=-58; la base, en y=0. Cerca de la base
+      // es "más cerca de 0 que del punto medio hacia la punta".
+      expect(Math.abs(Number(ty)), 'el contrapeso quedó cerca de la punta de la viga').toBeLessThan(29)
+    }
+  })
 })
