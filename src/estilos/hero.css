@@ -35,18 +35,36 @@
 .hero__texto {
   position: relative;
   z-index: 1;
-  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) clamp(64px, 9vh, 112px);
-  /* Un respaldo detrás del texto, no una tarjeta: opaco donde vive el título,
-     la bajada y el dato, y se apaga del todo en el padding de más abajo. Sin
-     él, a 1440x900 (1,6:1, el extremo angosto de lo "típico") el bloque de
-     texto mide ~330px y el cielo sólo tiene 260 unidades de horizonte --
-     ~325px a esa escala-- así que la última línea (el dato) cae encima de la
-     estepa y la base de un balancín (medido con getBoundingClientRect() +
-     captura en Chrome headless a 1440x900 real). Fijar la tipografía para
-     ganar esos 5-10px es frágil: cualquier cambio de copy o de formación
-     vuelve a romperlo. El degradé absorbe el margen de error sin tocar la
-     tipografía que ya se ajustó en la Tarea 6. */
-  background: linear-gradient(to bottom, var(--papel) 0 68%, transparent 100%);
+  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) 0;
+  /* Un respaldo detrás de la última línea (el dato), no una tarjeta: sin él,
+     a 1440x900 (1,6:1, el extremo angosto de lo "típico") el bloque de texto
+     alcanza el horizonte y el dato cae encima de la estepa y la base de un
+     balancín.
+
+     La primera versión de este degradé iba del 0% al 68% de ALTO DE LA CAJA
+     (`.hero__texto` es de alto variable, 330-411px según copy/formaciones/
+     viewport). Con la caja real a 411px eso ponía papel semiopaco bastante
+     más abajo de lo que hacía falta -tapaba a RAYOSO, la banda de la
+     superficie, con casi la mitad de opacidad todavía encima (revisión,
+     Important 3: luminancia 143 contra 86-94 de QUINTUCO/LOTENA sin tapar,
+     35% menos contraste). RAYOSO es del dibujo, no del texto: el spec dice
+     que los rótulos de formación "se leen".
+
+     La segunda versión (alto fijo de 48px, `padding-bottom` de 28px)
+     TAMPOCO alcanzaba: medido con getBBox() a 1440x900, el contenido (sin
+     padding) termina en el local y=264 y RAYOSO arranca en y=266,4 -- sólo
+     2,4 unidades locales (~3px en pantalla) de margen real. Cualquier
+     `padding-bottom` mayor a eso ya mete la caja en el rango de RAYOSO. Por
+     eso ahora `padding-bottom` es CERO: el borde inferior de la caja
+     coincide con el borde del contenido, sin colchón que se coma el margen
+     -de por sí angosto- antes de RAYOSO. El degradé (alto fijo, anclado al
+     borde inferior) pasa a vivir DENTRO de esa última línea en vez de
+     debajo: opaco en el pie, donde está el dato, y transparente subiendo
+     hacia la bajada -que no lo necesita, ya está sobre cielo vacío-. */
+  background-image: linear-gradient(to bottom, transparent, var(--papel) 70%);
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% 22px;
 }
 /* La medida va POR ELEMENTO y no en el bloque. Un `max-width: 46ch` en el
    contenedor se calcula con SU tamaño de fuente (16px), o sea unos 368px, y
@@ -293,7 +311,12 @@
 
 /* ---------- Acto VI: el relevo ---------- */
 .hero--saliendo { animation: hero-irse 600ms cubic-bezier(.4,0,1,1) both; }
-.hero--saliendo .corte__subsuelo, .hero--saliendo .corte__pozos, .hero--saliendo .corte__escala {
+/* `.corte__cuenca` es un hermano suelto del `<svg>` -no vive dentro de
+   `.corte__subsuelo`- así que sin sumarlo acá se queda quieto mientras el
+   resto del subsuelo se hunde (visible en la captura del relevo, Tarea 7,
+   Minor 6). Rotula el subsuelo, así que se hunde con él. */
+.hero--saliendo .corte__subsuelo, .hero--saliendo .corte__pozos,
+.hero--saliendo .corte__escala, .hero--saliendo .corte__cuenca {
   animation: corte-hundirse 600ms cubic-bezier(.4,0,1,1) both;
 }
 .hero--saliendo .hero__texto, .hero--saliendo .corte__superficie {
