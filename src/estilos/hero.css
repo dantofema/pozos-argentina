@@ -1,0 +1,261 @@
+/* ---------- El hero: capa sobre el mapa, con su propio contexto ---------- */
+.hero {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  background: var(--papel);
+  overflow: hidden;
+}
+
+.hero__texto {
+  align-self: end;
+  padding: 0 clamp(20px, 5vw, 72px);
+  max-width: 46ch;
+}
+.hero__titulo {
+  font: 600 clamp(2.2rem, 5vw, 3.8rem)/1.05 var(--serif);
+  margin: 0;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.hero__bajada {
+  font: 400 clamp(1rem, 2vw, 1.2rem)/1.55 var(--serif);
+  color: var(--apagado);
+  margin: 0.9rem 0 0;
+}
+.hero__dato {
+  font: 400 0.875rem/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--cobre);
+  margin: 1.1rem 0 0;
+}
+.hero__buscador { padding: 1.2rem clamp(20px, 5vw, 72px) 0; }
+
+/* El corte reserva su caja desde el primer cuadro, antes de tener datos: sin
+   esto el hero salta de alto cuando llega el manifiesto (E6). */
+.hero__dibujo {
+  position: relative;
+  min-height: 42vh;
+  aspect-ratio: 1200 / 720;
+  align-self: stretch;
+}
+.corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
+
+/* ---------- El dibujo en reposo, sin animación ---------- */
+.corte__horizonte { stroke: var(--tinta); stroke-width: 2.2; }
+.corte__contacto { stroke: var(--tinta); stroke-width: 0.7; opacity: 0.45; }
+.corte__relleno { color: var(--apagado); }
+.corte__estrato--madre .corte__relleno { color: var(--vaca); }
+
+/* Los rótulos se leen SOBRE la trama litológica, que es un patrón de líneas o
+   puntos: sin separarlos del fondo, el texto compite con la trama y no se lee.
+   `paint-order: stroke` pinta primero un contorno del color del papel y después
+   el relleno, así que cada letra queda con su propio halo. Es la técnica
+   estándar en SVG para texto sobre textura, y cuesta dos propiedades. */
+.corte__rotulo {
+  font: 600 13px var(--rotulo);
+  letter-spacing: 0.1em;
+  fill: var(--apagado);
+  paint-order: stroke;
+  stroke: var(--papel);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+.corte__estrato--madre .corte__rotulo {
+  font: 600 15px var(--serif);
+  letter-spacing: 0.02em;
+  fill: var(--vaca);
+  stroke-width: 4px;
+}
+.corte__cuenca, .corte__leyenda {
+  font: 600 11px var(--rotulo);
+  letter-spacing: 0.12em;
+  fill: var(--apagado);
+  paint-order: stroke;
+  stroke: var(--papel);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.corte__marca line { stroke: var(--apagado); stroke-width: 1; }
+.corte__marca text {
+  font: 400 10px var(--mono);
+  font-variant-numeric: tabular-nums;
+  fill: var(--apagado);
+}
+
+.corte__casing, .corte__lateral { stroke: var(--cobre); stroke-width: 2.4; fill: none; }
+.balancin path, .balancin circle {
+  stroke: var(--tinta);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+}
+/* `balancin__biela` y `balancin__manivela` son `path` sin regla propia acá
+   abajo: ya salen de esta regla general con el mismo trazo tinta que la base
+   y la torre del balancín, dos varillas rígidas y no dos piezas destacadas.
+   `balancin__manivela` además vive dentro de `.balancin__contrapeso`, así que
+   gira sola con el grupo cuando el Acto V hace girar el contrapeso -- no
+   necesita ni regla ni animación propia. `balancin__biela` sí la necesita,
+   porque no vive dentro de ningún grupo que se mueva: se resuelve en el
+   Acto V, más abajo. */
+.balancin__contrapeso circle { fill: var(--cobre); stroke: none; }
+
+/* La cabeza y el cable los agregó una ronda posterior de la tarea del corte, y
+   el selector de arriba no les sirve: la cabeza es un `path` al que ese selector
+   le impone `fill: none`, y el cable es un `line`, que directamente no matchea.
+   Sin estas dos reglas el cable es invisible y la cabeza un contorno hueco.
+   La especificidad importa: `.balancin .balancin__cabeza` (0,2,0) le gana a
+   `.balancin path` (0,1,1); al revés no. */
+.balancin .balancin__cabeza { fill: var(--tinta); stroke: none; }
+.balancin .balancin__cable { stroke: var(--tinta); stroke-width: 1.6; fill: none; }
+
+/* La llama va en `--apagado` y no en `--cobre`: C1 reserva el cobre para el dato
+   —pozos, cifras, el botón de descarga— y prohíbe decorar con él. Tinta la
+   convertiría en un blob negro. `--apagado` es el tono mudo que el resto del
+   dibujo ya usa para lo que no es protagonista. Decidido al mirar el render. */
+.corte__antorcha .antorcha__llama { fill: var(--apagado); stroke: none; }
+/* El mástil (`antorcha__mastil`) lo agregó la misma ronda que la llama, y es
+   un `<line>`: ni la regla de la llama de arriba ni `.corte__antorcha path` de
+   abajo (que sólo matchea `path`) lo alcanzan. Sin esta regla no tiene stroke
+   y una `<line>` sin stroke no se pinta nada, ni siquiera un hueco: es
+   invisible del todo, en silencio. Mismo peso que el trazo del resto de la
+   antorcha, para que lea como una sola pieza. */
+.corte__antorcha .antorcha__mastil { stroke: var(--tinta); stroke-width: 2.4; fill: none; }
+.corte__antorcha path { stroke: var(--tinta); stroke-width: 2.4; fill: none; }
+.corte__torre path { stroke: var(--tinta); stroke-width: 2.2; fill: none; }
+.corte__estepa { stroke: var(--apagado); stroke-width: 1.4; fill: none; }
+
+/* Cada pieza rota sobre su propio pivote. `fill-box` hace que
+   transform-origin se mida contra la caja del elemento y no del SVG entero:
+   sin esto los pivotes caen en la esquina del lienzo. */
+.balancin__viga, .balancin__contrapeso { transform-box: fill-box; }
+.balancin__viga { transform-origin: center; }
+.balancin__contrapeso { transform-origin: center; }
+
+/* ---------- Acto I: el instrumento se traza ---------- */
+/* Largos fijos y no getTotalLength(): el viewBox es conocido, y así el CSS no
+   depende de que el JS mida nada. */
+.hero--entrando .corte__horizonte { stroke-dasharray: 1200; animation: corte-trazar 1100ms cubic-bezier(.2,.7,.3,1) both; }
+.hero--entrando .corte__escala { animation: corte-aparecer 500ms 300ms both; }
+
+/* ---------- Acto II: la roca se deposita, de abajo hacia arriba ---------- */
+/* --orden 0 es la más antigua. Crece desde su propia base: lee deposición. */
+.hero--entrando .corte__estrato {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: corte-depositar 520ms cubic-bezier(.2,.7,.3,1) both;
+  animation-delay: calc(1200ms + var(--orden) * 150ms);
+}
+
+/* ---------- Acto III: Vaca Muerta, el foco ---------- */
+/* El quiebre de tempo: 260ms de más antes de que caiga. */
+.hero--entrando .corte__estrato--madre {
+  animation-delay: calc(1200ms + var(--orden) * 150ms + 260ms);
+}
+.hero--entrando .corte__estrato--madre .corte__relleno {
+  animation: corte-barrer 760ms calc(1200ms + var(--orden) * 150ms + 560ms) both;
+}
+
+/* ---------- Acto IV: lo que hizo la gente ---------- */
+.hero--entrando .corte__casing {
+  transform-box: fill-box;
+  transform-origin: center top;
+  /* Rápido, enganche, rápido: lee máquina y no interfaz. */
+  animation: corte-perforar 780ms cubic-bezier(.9,.06,.12,.96) 3200ms both;
+}
+.hero--entrando .corte__lateral {
+  transform-box: fill-box;
+  animation: corte-extender 520ms cubic-bezier(.2,.7,.3,1) 3900ms both;
+}
+.hero--entrando .balancin { animation: corte-subir 620ms cubic-bezier(.2,.7,.3,1) 3800ms both; }
+
+/* ---------- Acto V: el campo trabaja ---------- */
+/* Tres períodos distintos: el campo no sincroniza nunca. Y el contrapeso gira
+   acoplado a la viga, que es lo que lo hace leer como máquina. */
+.hero--reposo .balancin__viga {
+  animation: balancin-cabecear var(--periodo) ease-in-out infinite;
+}
+.hero--reposo .balancin__contrapeso {
+  animation: balancin-girar var(--periodo) linear infinite;
+}
+/* La biela es hija directa de `.balancin`, no de la viga ni del contrapeso:
+   no hereda ninguna de las dos rotaciones. Su extremo trasero coincide,
+   coordenada a coordenada, con el pivote de giro de `.balancin__contrapeso`
+   (en `corte.js`, el punto -40,-18 es a la vez el segundo punto de la biela y
+   el centro de la caja del contrapeso), así que ese extremo ya queda fijo sin
+   animar nada. El extremo delantero, en cambio, es el que toca la viga, y una
+   biela rígida y quieta se despega de esa punta en cada cabeceo. No hay una
+   biela de cuatro barras de verdad con sólo `transform`: se le da un balanceo
+   propio, pivotado en el extremo fijo (`100% 100%` de su propia caja, que es
+   justo ese punto) y en el mismo período y curva que la viga, para que lea
+   acoplada y no como una varilla clavada en el aire. */
+.hero--reposo .balancin__biela {
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+  animation: balancin-cabecear var(--periodo) ease-in-out infinite;
+}
+.hero--reposo .corte__lateral {
+  animation: corte-fluir calc(var(--periodo, 4s) * 2) linear infinite;
+  stroke-dasharray: 6 14;
+}
+/* La antorcha titila en su propio ritmo, ajeno a los balancines: un período que
+   no es múltiplo de ninguno de los tres, así que el conjunto no sincroniza nunca.
+   Es lo que el spec pide en el Acto V. */
+.hero--reposo .corte__antorcha .antorcha__llama {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: antorcha-titilar 1.7s ease-in-out infinite;
+}
+.hero--pausado *, .hero--pausado { animation-play-state: paused !important; }
+
+/* ---------- Acto VI: el relevo ---------- */
+.hero--saliendo { animation: hero-irse 600ms cubic-bezier(.4,0,1,1) both; }
+.hero--saliendo .corte__subsuelo, .hero--saliendo .corte__pozos, .hero--saliendo .corte__escala {
+  animation: corte-hundirse 600ms cubic-bezier(.4,0,1,1) both;
+}
+.hero--saliendo .hero__texto, .hero--saliendo .corte__superficie {
+  animation: corte-aparecer 240ms reverse both;
+}
+
+@keyframes corte-trazar { from { stroke-dashoffset: 1200 } to { stroke-dashoffset: 0 } }
+@keyframes corte-aparecer { from { opacity: 0 } to { opacity: 1 } }
+@keyframes corte-depositar { from { transform: scaleY(0); opacity: 0 } to { transform: scaleY(1); opacity: 1 } }
+@keyframes corte-barrer { 0% { opacity: .35 } 45% { opacity: 1 } 100% { opacity: 1 } }
+@keyframes corte-perforar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+@keyframes corte-extender { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+@keyframes corte-subir { from { transform: translateY(14px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes balancin-cabecear { 0%, 100% { transform: rotate(-7deg) } 50% { transform: rotate(7deg) } }
+@keyframes balancin-girar { to { transform: rotate(360deg) } }
+@keyframes corte-fluir { to { stroke-dashoffset: -40 } }
+/* Irregular a propósito: una llama que pulsa con un seno perfecto lee como un
+   latido, no como fuego. Los cuatro pasos desparejos rompen la periodicidad. */
+@keyframes antorcha-titilar {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 1 }
+  28%      { transform: scaleY(1.14) scaleX(0.94); opacity: 0.86 }
+  53%      { transform: scaleY(0.93) scaleX(1.05); opacity: 1 }
+  76%      { transform: scaleY(1.07) scaleX(0.97); opacity: 0.92 }
+}
+@keyframes corte-hundirse { to { transform: translateY(28%); opacity: 0 } }
+@keyframes hero-irse { to { opacity: 0; visibility: hidden } }
+
+/* ---------- Movimiento reducido (G4) ---------- */
+/* Lo único no negociable: para alguien con sensibilidad vestibular, tres
+   balancines cabeceando en la periferia no es un adorno, es un síntoma. Se
+   apaga todo y el corte queda completo y quieto en su cuadro final. */
+@media (prefers-reduced-motion: reduce) {
+  .hero *, .hero *::before, .hero *::after, .hero {
+    animation: none !important;
+    transition: none !important;
+  }
+  .corte__horizonte { stroke-dasharray: none; }
+  .corte__lateral { stroke-dasharray: none; }
+}
+
+/* ---------- Angosto ---------- */
+@media (max-width: 720px) {
+  .hero { grid-template-rows: auto 1fr; }
+  .hero__dibujo { min-height: 34vh; order: 2; }
+  .hero__texto { align-self: start; padding-top: 6vh; }
+}

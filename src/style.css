@@ -2,4 +2,5 @@
    todo lo demás los consume. */
 @import "./estilos/tokens.css";
 @import "./estilos/base.css";
+@import "./estilos/hero.css";
 @import "./estilos/herramienta.css";
