@@ -1428,14 +1428,20 @@ Expected: PASS, 9 tests.
   inset: 0;
   z-index: 500;
   display: grid;
-  grid-template-rows: 1fr auto;
+  /* Tres filas: el título arriba, el dibujo absorbiendo lo que queda, y el
+     buscador abajo con su alto intrínseco garantizado. Con dos filas —dibujo
+     arriba y todo el texto abajo— el buscador se caía fuera del viewport en la
+     mitad de los tamaños probados, porque competía con el título por la misma
+     fila `auto`. Es además la composición que se aprobó: título, ilustración,
+     buscador. */
+  grid-template-rows: auto 1fr auto;
   background: var(--papel);
   overflow: hidden;
 }
 
 .hero__texto {
-  align-self: end;
-  padding: 0 clamp(20px, 5vw, 72px);
+  align-self: start;
+  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) 0;
   max-width: 46ch;
 }
 .hero__titulo {
@@ -1458,14 +1464,23 @@ Expected: PASS, 9 tests.
 .hero__buscador { padding: 1.2rem clamp(20px, 5vw, 72px) 0; }
 
 /* El corte reserva su caja desde el primer cuadro, antes de tener datos: sin
-   esto el hero salta de alto cuando llega el manifiesto (E6). */
+   esto el hero salta de alto cuando llega el manifiesto (E6).
+   `width: 100%` es obligatorio: sin un ancho explícito, `aspect-ratio` deriva el
+   ancho a partir del alto en vez de estirarse a la fila, y el dibujo quedaba
+   ocupando el 40% del ancho con el resto en blanco. Y no lleva `aspect-ratio`
+   fijo: la fila `1fr` le da el alto, y el `meet` del SVG se encarga de encajar
+   el dibujo entero adentro sin recortar nada. */
 .hero__dibujo {
   position: relative;
-  min-height: 42vh;
-  aspect-ratio: 1200 / 720;
+  width: 100%;
+  min-height: 30vh;
   align-self: stretch;
 }
 .corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
+/* La lista de resultados del buscador se posiciona `absolute` y su bloque
+   contenedor es el ancestro posicionado más cercano. Dentro del hero eso sería
+   `.hero`, que es `fixed`: sin esto la lista aparece en otro lado. */
+.hero__buscador { position: relative; }
 
 /* ---------- El dibujo en reposo, sin animación ---------- */
 .corte__horizonte { stroke: var(--tinta); stroke-width: 2.2; }
@@ -1648,9 +1663,15 @@ Expected: PASS, 9 tests.
 
 /* ---------- Angosto ---------- */
 @media (max-width: 720px) {
-  .hero { grid-template-rows: auto 1fr; }
-  .hero__dibujo { min-height: 34vh; order: 2; }
-  .hero__texto { align-self: start; padding-top: 6vh; }
+  .hero__dibujo { min-height: 26vh; }
+  /* A este ancho el dibujo entero entra en una franja chica y sus rótulos caen a
+     unos cuatro píxeles: ilegibles. Se ocultan los secundarios y queda el de la
+     roca madre, que es el foco. Preferible un dibujo simplificado y legible a
+     nueve rótulos que nadie puede leer. Los conteos siguen en el manifiesto y en
+     el dibujo de escritorio. */
+  .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
+  .corte__escala,
+  .corte__cuenca { display: none; }
 }
 ```
 

@@ -157,11 +157,29 @@ Escala de tipos, base 16px, razón 1,25:
 ## 7. La ilustración: anatomía del corte
 
 Un solo SVG inline, construido en JS a partir del manifiesto. `viewBox="0 0 1200 720"`,
-`preserveAspectRatio="xMidYMid slice"`.
+`preserveAspectRatio="xMidYMax meet"`.
+
+Corregido el 2026-09-12: este spec decía `slice`, que recorta para cubrir la caja. Está mal
+para este dibujo y la medición lo probó: en un viewport de 1920×1080 la banda de Vaca Muerta
+—el foco del Acto III— desaparecía entera, y en los cuatro viewports probados se perdían
+tres formaciones y la leyenda de profundidad. `slice` sirve para fondos fotográficos, donde
+recortar no cuesta nada; acá el contenido recortado son los estratos con sus conteos, que son
+el dato. `meet` encaja el dibujo entero y nunca pierde nada; `YMax` lo ancla abajo, así que
+el subsuelo se apoya sobre el buscador y el aire sobrante queda en el cielo, que es la parte
+prescindible.
 
 La línea de horizonte está en `y=260`: **el subsuelo ocupa casi dos tercios**, porque es
 donde está el dato. Esa misma línea es la base sobre la que se apoya el buscador, así que
 composición e interfaz comparten una línea.
+
+**Legibilidad por tamaño.** El dibujo encaja entero en la fila que le toque, así que en
+pantallas angostas se achica y sus rótulos con él: medido, un rótulo de 13px se ve a 13,5px
+en escritorio grande, 10,3px en escritorio, 7,9px en laptop y 4,2px en móvil. Por debajo del
+breakpoint angosto se **ocultan los rótulos de banda secundarios** y queda sólo el de la roca
+madre, que es el foco. Es preferible un dibujo simplificado y legible a nueve rótulos de
+cuatro píxeles que nadie puede leer. Los conteos por formación siguen estando en el
+manifiesto y en el dibujo de escritorio: lo que se oculta en móvil es una capa de
+enriquecimiento, no el dato que el sitio entrega, que es el CSV.
 
 ### 7.1 Sobre el horizonte (y < 260)
 
