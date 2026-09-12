@@ -1428,16 +1428,32 @@ Expected: PASS, 9 tests.
   inset: 0;
   z-index: 500;
   display: grid;
-  /* Tres filas: el título arriba, el dibujo absorbiendo lo que queda, y el
-     buscador abajo con su alto intrínseco garantizado. Con dos filas —dibujo
-     arriba y todo el texto abajo— el buscador se caía fuera del viewport en la
-     mitad de los tamaños probados, porque competía con el título por la misma
-     fila `auto`. Es además la composición que se aprobó: título, ilustración,
-     buscador. */
+  /* Tres filas para el CONTENIDO: título arriba, un hueco elástico al medio, y
+     el buscador abajo con su alto intrínseco garantizado. Con dos filas el
+     buscador competía con el título por la misma fila `auto` y se caía fuera del
+     viewport en la mitad de los tamaños probados. */
   grid-template-rows: auto 1fr auto;
   background: var(--papel);
   overflow: hidden;
 }
+
+/* El dibujo llena el hero ENTERO, detrás del texto, y no ocupa una fila.
+
+   La razón es aritmética, no estética: el corte mide 1200x720, o sea 1,67:1, y
+   el aspecto de un viewport típico va de 1,60 a 1,78 — casi el mismo. Llenando
+   el hero completo, el recorte es de 45 unidades de cielo o ninguno, y los
+   rótulos se ven a entre 15 y 21 píxeles. Metido en una fila que comparte el
+   alto con el texto, el mismo dibujo queda a 733x440 con rótulos de 6 a 8
+   píxeles y márgenes vacíos a los costados: lee como una imagen pegada en un
+   documento, no como la ilustración del hero. Medido en cuatro viewports.
+
+   El texto se apoya sobre el cielo, que está vacío por diseño. */
+.hero__dibujo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero__texto { position: relative; z-index: 1; }
 
 .hero__texto {
   align-self: start;
@@ -1467,7 +1483,16 @@ Expected: PASS, 9 tests.
   color: var(--cobre);
   margin: 1.1rem 0 0;
 }
-.hero__buscador { padding: 1.2rem clamp(20px, 5vw, 72px) 0; }
+/* Banda de papel al pie: el buscador cae sobre los estratos profundos, y sin
+   fondo propio el campo competiría con la trama litológica. El borde superior
+   lo separa del dibujo sin tapar nada. */
+.hero__buscador {
+  position: relative;
+  z-index: 1;
+  padding: 1.1rem clamp(20px, 5vw, 72px) 1.4rem;
+  background: var(--papel);
+  border-top: 1px solid var(--linea);
+}
 
 /* El corte reserva su caja desde el primer cuadro, antes de tener datos: sin
    esto el hero salta de alto cuando llega el manifiesto (E6).
@@ -1476,15 +1501,7 @@ Expected: PASS, 9 tests.
    ocupando el 40% del ancho con el resto en blanco. Y no lleva `aspect-ratio`
    fijo: la fila `1fr` le da el alto, y el `meet` del SVG se encarga de encajar
    el dibujo entero adentro sin recortar nada. */
-/* `min-height: 0` a propósito: el dibujo toma lo que sobre y NUNCA fuerza
-   desbordes. El texto y el buscador son las dos cosas que no pueden caerse del
-   viewport; el dibujo es lo que cede. */
-.hero__dibujo {
-  position: relative;
-  width: 100%;
-  min-height: 0;
-  align-self: stretch;
-}
+
 .corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
 /* La lista de resultados del buscador se posiciona `absolute` y su bloque
    contenedor es el ancestro posicionado más cercano. Dentro del hero eso sería
@@ -1671,22 +1688,15 @@ Expected: PASS, 9 tests.
 }
 
 /* ---------- Angosto ---------- */
-/* Una franja de menos de 180px no es un dibujo, es una astilla: peor que no
-   mostrarlo. Cuando la pantalla es tan baja que no queda lugar, el hero se
-   queda con el texto y el buscador, que es lo que no se puede perder. */
-@media (max-height: 560px) {
-  .hero__dibujo { display: none; }
-}
-
-/* Los rótulos se ocultan por ancho Y por alto: el dibujo encoge en las dos
-   direcciones, y en una laptop de 768px de alto queda a menos de la mitad de
-   escala aunque la pantalla sea ancha. */
-@media (max-width: 720px), (max-height: 820px) {
-  /* A este ancho el dibujo entero entra en una franja chica y sus rótulos caen a
-     unos cuatro píxeles: ilegibles. Se ocultan los secundarios y queda el de la
-     roca madre, que es el foco. Preferible un dibujo simplificado y legible a
-     nueve rótulos que nadie puede leer. Los conteos siguen en el manifiesto y en
-     el dibujo de escritorio. */
+/* Con el dibujo a pantalla completa ya no hace falta ocultarlo en pantallas
+   bajas —no le roba espacio a nadie— ni esconder rótulos por alto: a este
+   encuadre se ven a 15px o más en todos los tamaños de escritorio medidos.
+   Queda sólo la regla de ancho: en una columna angosta el recorte es horizontal
+   y el texto superpuesto compite con los rótulos. */
+@media (max-width: 720px) {
+  /* Se ocultan los secundarios y queda el de la roca madre, que es el foco.
+     Preferible un dibujo simplificado y legible a nueve rótulos apretados
+     debajo del título. Los conteos siguen en el manifiesto y en escritorio. */
   .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
   .corte__escala,
   .corte__cuenca { display: none; }
