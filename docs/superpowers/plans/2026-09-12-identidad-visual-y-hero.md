@@ -1442,18 +1442,24 @@ Expected: PASS, 9 tests.
 .hero__texto {
   align-self: start;
   padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) 0;
-  max-width: 46ch;
 }
+/* La medida va POR ELEMENTO y no en el bloque. Un `max-width: 46ch` en el
+   contenedor se calcula con SU tamaño de fuente (16px), o sea unos 368px, y
+   adentro un título de 60px tiene que envolver cada once caracteres: un título
+   de 52 caracteres salía en seis líneas y se comía el presupuesto vertical del
+   hero entero. Cada elemento declara su propia medida, en sus propios `ch`. */
 .hero__titulo {
-  font: 600 clamp(2.2rem, 5vw, 3.8rem)/1.05 var(--serif);
+  font: 600 clamp(1.8rem, 3.6vw, 2.8rem)/1.06 var(--serif);
+  max-width: 24ch;
   margin: 0;
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
 .hero__bajada {
-  font: 400 clamp(1rem, 2vw, 1.2rem)/1.55 var(--serif);
+  font: 400 clamp(0.98rem, 1.6vw, 1.12rem)/1.5 var(--serif);
+  max-width: 58ch;
   color: var(--apagado);
-  margin: 0.9rem 0 0;
+  margin: 0.8rem 0 0;
 }
 .hero__dato {
   font: 400 0.875rem/1 var(--mono);
@@ -1470,10 +1476,13 @@ Expected: PASS, 9 tests.
    ocupando el 40% del ancho con el resto en blanco. Y no lleva `aspect-ratio`
    fijo: la fila `1fr` le da el alto, y el `meet` del SVG se encarga de encajar
    el dibujo entero adentro sin recortar nada. */
+/* `min-height: 0` a propósito: el dibujo toma lo que sobre y NUNCA fuerza
+   desbordes. El texto y el buscador son las dos cosas que no pueden caerse del
+   viewport; el dibujo es lo que cede. */
 .hero__dibujo {
   position: relative;
   width: 100%;
-  min-height: 30vh;
+  min-height: 0;
   align-self: stretch;
 }
 .corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
@@ -1662,8 +1671,17 @@ Expected: PASS, 9 tests.
 }
 
 /* ---------- Angosto ---------- */
-@media (max-width: 720px) {
-  .hero__dibujo { min-height: 26vh; }
+/* Una franja de menos de 180px no es un dibujo, es una astilla: peor que no
+   mostrarlo. Cuando la pantalla es tan baja que no queda lugar, el hero se
+   queda con el texto y el buscador, que es lo que no se puede perder. */
+@media (max-height: 560px) {
+  .hero__dibujo { display: none; }
+}
+
+/* Los rótulos se ocultan por ancho Y por alto: el dibujo encoge en las dos
+   direcciones, y en una laptop de 768px de alto queda a menos de la mitad de
+   escala aunque la pantalla sea ancha. */
+@media (max-width: 720px), (max-height: 820px) {
   /* A este ancho el dibujo entero entra en una franja chica y sus rótulos caen a
      unos cuatro píxeles: ilegibles. Se ocultan los secundarios y queda el de la
      roca madre, que es el foco. Preferible un dibujo simplificado y legible a
