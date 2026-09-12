@@ -3,22 +3,50 @@
   position: fixed;
   inset: 0;
   z-index: 500;
-  display: grid;
-  /* Tres filas: el título arriba, el dibujo absorbiendo lo que queda, y el
-     buscador abajo con su alto intrínseco garantizado. Con dos filas --dibujo
-     arriba y todo el texto abajo-- el buscador se caía fuera del viewport en
-     la mitad de los tamaños probados, porque competía con el título por la
-     misma fila `auto` (medido con getBoundingClientRect(), Tarea 6 §9). Es
-     además la composición que se aprobó: título, ilustración, buscador; la
-     había desviado esta hoja al principio. */
-  grid-template-rows: auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   background: var(--papel);
   overflow: hidden;
 }
 
+/* El dibujo llena el hero ENTERO, detrás del texto -- no es una fila del
+   layout, es un fondo. La razón es aritmética, no estética: el corte mide
+   1200x720 (1,67:1) y el aspecto de un viewport típico va de 1,60 a 1,78,
+   casi el mismo; llenando el hero completo el recorte de `slice` es de 45
+   unidades de cielo o ninguno, y los rótulos se ven a entre 15 y 21 píxeles.
+   Metido en una fila que compartía el alto con el texto (versión anterior de
+   esta hoja) el mismo dibujo quedaba a 733x440 con rótulos de 6 a 8 píxeles
+   y márgenes vacíos a los costados: leía como una imagen pegada en un
+   documento, no como la ilustración del hero.
+
+   El texto se apoya sobre el cielo, que está vacío por diseño (el dibujo no
+   tiene nada arriba del horizonte salvo la estepa, los balancines, la
+   antorcha y la torre, todos angostos). `z-index` es necesario y no
+   cosmético: un elemento posicionado sin él pinta por encima del contenido
+   no posicionado, así que sin estas dos reglas el dibujo (`position:
+   absolute`) taparía el texto en vez de quedar detrás. */
+.hero__dibujo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
+
 .hero__texto {
-  align-self: start;
-  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) 0;
+  position: relative;
+  z-index: 1;
+  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) clamp(64px, 9vh, 112px);
+  /* Un respaldo detrás del texto, no una tarjeta: opaco donde vive el título,
+     la bajada y el dato, y se apaga del todo en el padding de más abajo. Sin
+     él, a 1440x900 (1,6:1, el extremo angosto de lo "típico") el bloque de
+     texto mide ~330px y el cielo sólo tiene 260 unidades de horizonte --
+     ~325px a esa escala-- así que la última línea (el dato) cae encima de la
+     estepa y la base de un balancín (medido con getBoundingClientRect() +
+     captura en Chrome headless a 1440x900 real). Fijar la tipografía para
+     ganar esos 5-10px es frágil: cualquier cambio de copy o de formación
+     vuelve a romperlo. El degradé absorbe el margen de error sin tocar la
+     tipografía que ya se ajustó en la Tarea 6. */
+  background: linear-gradient(to bottom, var(--papel) 0 68%, transparent 100%);
 }
 /* La medida va POR ELEMENTO y no en el bloque. Un `max-width: 46ch` en el
    contenedor se calcula con SU tamaño de fuente (16px), o sea unos 368px, y
@@ -46,42 +74,37 @@
   color: var(--cobre);
   margin: 1.1rem 0 0;
 }
-.hero__buscador { padding: 1.2rem clamp(20px, 5vw, 72px) 0; }
 
-/* El corte reserva su caja desde el primer cuadro, antes de tener datos: sin
-   esto el hero salta de alto cuando llega el manifiesto (E6).
-
-   `width: 100%` sigue siendo obligatorio: sin un ancho explícito, este grid
-   de una sola columna no estira la caja en el eje horizontal (`align-self:
-   stretch` sólo gobierna el eje de bloque), y el dibujo terminaba ocupando
-   40-50% del ancho con el resto en blanco (medido con getBoundingClientRect()
-   contra el markup real de la Tarea 7, ver el reporte de la Tarea 6 §9).
-
-   Ya NO lleva `aspect-ratio` fijo: la fila `1fr` le da el alto que sobra, y
-   el `meet` de `corte.js` (antes `slice`) encaja el dibujo entero adentro sin
-   recortar nada, sea cual sea esa altura -- con `aspect-ratio` puesto, los
-   dos (la fila y la relación fija) peleaban por mandar en el alto, y era
-   `slice` quien terminaba recortando formaciones enteras para disimular el
-   desacuerdo (Vaca Muerta entera a 1920×1080, ver la Tarea 6 §9-10).
-
-   `min-height: 0` a propósito, y no un piso en vh: probé 30vh y con el
-   título real (antes de arreglarlo, ver arriba) seguía forzando desborde
-   -- el texto y el buscador son las dos cosas que no pueden caerse del
-   viewport, y el dibujo es lo que cede. Sin piso, la fila `1fr` nunca pide
-   más de lo que sobra, así que las tres filas nunca exceden el alto del
-   hero (Tarea 6 §10.5, confirmado con getBoundingClientRect() en los
-   cuatro viewports: excedente pasó de +58/+188px a 0 en todos). */
-.hero__dibujo {
+/* El buscador cae sobre los estratos profundos, no sobre el cielo: con
+   `flex-direction: column` en `.hero` y sólo dos hijos en flujo (el dibujo
+   es `position: absolute`, sale del flujo), `margin-top: auto` en el
+   buscador consume todo el espacio libre y lo empuja al borde inferior, sin
+   necesidad de una fila de grid dedicada. Lleva fondo de papel propio y un
+   borde superior: sin uno de los dos, el campo competiría visualmente con la
+   trama litológica que tiene detrás (I5). La lista de resultados se
+   posiciona `absolute` contra el ancestro posicionado más cercano -- por
+   `position: relative` acá, ese ancestro es este bloque y no `.hero`
+   (`fixed`), que la pondría en otro lado del documento. */
+.hero__buscador {
   position: relative;
-  width: 100%;
-  min-height: 0;
-  align-self: stretch;
+  z-index: 1;
+  margin-top: auto;
+  padding: 1.1rem clamp(20px, 5vw, 72px) 1.4rem;
+  background: var(--papel);
+  border-top: 1px solid var(--linea);
 }
-.corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
-/* La lista de resultados del buscador se posiciona `absolute` y su bloque
-   contenedor es el ancestro posicionado más cercano. Dentro del hero eso
-   sería `.hero`, que es `fixed`: sin esto la lista aparece en otro lado. */
-.hero__buscador { position: relative; }
+/* La lista de `buscador.js` abre hacia abajo por default (así vive en
+   `.barra`, en la herramienta, con toda la página debajo). Acá el campo está
+   pegado al borde inferior del viewport -- no hay "abajo" -- así que
+   `overflow: hidden` en `.hero` se la comía entera (confirmado con
+   getBoundingClientRect(): la lista medía top=884 con el campo terminando en
+   877, o sea 7px de alto útil visibles de sus hasta 260px). Se abre hacia
+   arriba sólo dentro del hero; `buscador.js` no se toca (X2). */
+.hero__buscador .buscador__resultados {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 6px;
+}
 
 /* ---------- El dibujo en reposo, sin animación ---------- */
 .corte__horizonte { stroke: var(--tinta); stroke-width: 2.2; }
@@ -313,28 +336,19 @@
 }
 
 /* ---------- Angosto ---------- */
-/* Una franja de menos de 180px no es un dibujo, es una astilla: peor que no
-   mostrarlo -- confirmado mirando un crop ampliado a 56px de alto (Tarea 6
-   §10.5): no se lee nada, ni un trazo, y encima se lleva espacio de la fila
-   `1fr`. Cuando la pantalla es tan baja que no queda lugar, el hero se queda
-   con el texto y el buscador, que es lo que no se puede perder. */
-@media (max-height: 560px) {
-  .hero__dibujo { display: none; }
-}
-
-/* Los rótulos se ocultan por ancho Y por alto: el dibujo encoge en las dos
-   direcciones (`min-height: 0`, cede en la fila `1fr`), y en una laptop de
-   768px de alto queda a menos de media escala aunque la pantalla sea ancha
-   -- ahí los rótulos son ilegibles igual que a 720px de ancho. */
-@media (max-width: 720px), (max-height: 820px) {
-  /* A este tamaño el dibujo entero entra en una franja chica y sus rótulos
-     caen a unos cuatro píxeles: ilegibles (13,5px en escritorio grande,
-     10,3px en escritorio, 7,9px en laptop, 4,2px en móvil). Se ocultan los
-     secundarios y queda el de la roca madre, que es el foco. Preferible un
-     dibujo simplificado y legible a nueve rótulos que nadie puede leer. Los
-     conteos siguen en el manifiesto y en el dibujo de escritorio: lo que se
-     oculta acá es una capa de enriquecimiento, no el dato que el sitio
-     entrega, que es el CSV. */
+/* Con el dibujo a pantalla completa ya no hace falta ocultarlo en pantallas
+   bajas -- no le roba espacio a nadie, y `slice` escala por el mayor de
+   ancho/alto, así que un viewport bajo pero ancho no lo encoge (queda
+   grande, recortado arriba). Tampoco hace falta esconder rótulos por alto:
+   la escala mínima ya la fija el ancho. Queda sólo la regla de ancho: en una
+   columna angosta el recorte es horizontal y el texto superpuesto compite
+   con los rótulos. */
+@media (max-width: 720px) {
+  /* Se ocultan los secundarios y queda el de la roca madre, que es el foco.
+     Preferible un dibujo simplificado y legible a nueve rótulos apretados
+     bajo el título. Los conteos siguen en el manifiesto y en el dibujo de
+     escritorio: lo que se oculta acá es una capa de enriquecimiento, no el
+     dato que el sitio entrega, que es el CSV. */
   .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
   .corte__escala,
   .corte__cuenca { display: none; }

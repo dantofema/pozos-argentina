@@ -228,7 +228,7 @@ export function construirCorte({ formaciones, pozos, periodo }) {
 
   return `
 <svg class="corte" viewBox="0 0 ${ANCHO} ${ALTO}" role="img"
-     preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+     preserveAspectRatio="xMinYMax slice" xmlns="http://www.w3.org/2000/svg">
   <title>Corte geológico esquemático de la cuenca Neuquina</title>
   <desc>Sobre la superficie, tres balancines, una torre de perforación y una
   antorcha con su llama. Bajo la superficie, nueve formaciones en orden
@@ -246,6 +246,20 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   <line class="corte__horizonte" x1="0" y1="${HORIZONTE}" x2="${ANCHO}" y2="${HORIZONTE}" />
   <g class="corte__superficie">${superficie}</g>
 
-  <text class="corte__cuenca" x="${ANCHO - 56}" y="${HORIZONTE + 26}" text-anchor="end">CUENCA NEUQUINA</text>
+  <!-- Con xMinYMax slice, un viewport de 1440x900 (1,6:1, el extremo angosto
+       de lo "típico") escala por el alto y recorta el ancho: la ventana
+       visible en coordenadas locales llega, en teoría, hasta x=1152 -- este
+       rótulo, pegado al borde con x=ANCHO-56=1144, tendría 8 unidades de
+       margen. En la práctica (medido en Chrome headless, flag screenshot, con
+       y sin caché de perfil, con y sin virtual-time-budget) el margen real es
+       mucho menor que eso: a x=ANCHO-140 el rótulo seguía recortándose
+       ("CUENCA NEUQUIN", sin la "A"); recién sobrevive completo desde
+       x=ANCHO-160, y con margen cómodo desde x=ANCHO-180 -- confirmado además
+       a 1280x800, 1366x768 y 1920x1080. No tengo una explicación cerrada de
+       por qué el recorte real excede tanto al calculado (no es tipografía: se
+       repite igual con Arial Narrow y con un text SVG mínimo fuera de este
+       dibujo); lo trato como señal empírica y no como cálculo de escritorio.
+       ANCHO-180 dejó margen en los cinco tamaños probados. -->
+  <text class="corte__cuenca" x="${ANCHO - 180}" y="${HORIZONTE + 26}" text-anchor="end">CUENCA NEUQUINA</text>
 </svg>`
 }
