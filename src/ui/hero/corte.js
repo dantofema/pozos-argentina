@@ -254,20 +254,26 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   <line class="corte__horizonte" x1="0" y1="${HORIZONTE}" x2="${ANCHO}" y2="${HORIZONTE}" />
   <g class="corte__superficie">${superficie}</g>
 
-  <!-- Con xMinYMax slice, un viewport de 1440x900 (1,6:1, el extremo angosto
-       de lo "típico") escala por el alto y recorta el ancho: la ventana
-       visible en coordenadas locales llega, en teoría, hasta x=1152 -- este
-       rótulo, pegado al borde con x=ANCHO-56=1144, tendría 8 unidades de
-       margen. En la práctica (medido en Chrome headless, flag screenshot, con
-       y sin caché de perfil, con y sin virtual-time-budget) el margen real es
-       mucho menor que eso: a x=ANCHO-140 el rótulo seguía recortándose
-       ("CUENCA NEUQUIN", sin la "A"); recién sobrevive completo desde
-       x=ANCHO-160, y con margen cómodo desde x=ANCHO-180 -- confirmado además
-       a 1280x800, 1366x768 y 1920x1080. No tengo una explicación cerrada de
-       por qué el recorte real excede tanto al calculado (no es tipografía: se
-       repite igual con Arial Narrow y con un text SVG mínimo fuera de este
-       dibujo); lo trato como señal empírica y no como cálculo de escritorio.
-       ANCHO-180 dejó margen en los cinco tamaños probados. -->
+  <!-- Con xMinYMax slice, escala = max(ancho/1200, alto/720) y la ventana
+       visible en coordenadas locales llega hasta x = ancho/escala. El error
+       de mi primer cálculo fue mirar sólo 1440x900: ahí el rótulo (pegado al
+       borde, x=ANCHO-56=1144) entra con 8 unidades de margen, pero el caso
+       que manda es más angosto:
+
+         viewport    escala  visible hasta x   x=1144       x=1020
+         1920x1080   1,600   1200              entra        entra
+         1440x900    1,250   1152              entra        entra
+         1366x768    1,138   1200              entra        entra
+         1200x800    1,111   1080              SE CORTA     entra
+
+       A 1200x800 (1,5:1, más angosto que el 1,6 que tomé como el extremo de
+       lo "típico") la ventana cae a x=1080, por debajo del rótulo original.
+       Confirmado con capturas reales (Chrome headless, perfiles frescos, con
+       y sin virtual-time-budget): a x=ANCHO-140 seguía cortado ("CUENCA
+       NEUQUIN", sin la "A"); sobrevive completo desde x=ANCHO-160, con
+       margen cómodo desde x=ANCHO-180 -- que además entra con margen incluso
+       en el caso límite de la tabla (1200x800). No mover este valor sin
+       volver a mirar esa fila. -->
   <text class="corte__cuenca" x="${ANCHO - 180}" y="${HORIZONTE + 26}" text-anchor="end">CUENCA NEUQUINA</text>
 </svg>`
 }
