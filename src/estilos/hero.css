@@ -100,7 +100,10 @@
    necesita ni regla ni animación propia. `balancin__biela` sí la necesita,
    porque no vive dentro de ningún grupo que se mueva: se resuelve en el
    Acto V, más abajo. */
-.balancin__contrapeso circle { fill: var(--cobre); stroke: none; }
+/* Tinta y no cobre: C1 nombra "pozos" como lo que el cobre significa, y en
+   este dibujo el pozo es el casing y el lateral. El contrapeso es maquinaria,
+   igual que la llama de la antorcha (mismo razonamiento, misma revisión). */
+.balancin__contrapeso circle { fill: var(--tinta); stroke: none; }
 
 /* La cabeza y el cable los agregó una ronda posterior de la tarea del corte, y
    el selector de arriba no les sirve: la cabeza es un `path` al que ese selector
@@ -138,6 +141,15 @@
 /* Largos fijos y no getTotalLength(): el viewBox es conocido, y así el CSS no
    depende de que el JS mida nada. */
 .hero--entrando .corte__horizonte { stroke-dasharray: 1200; animation: corte-trazar 1100ms cubic-bezier(.2,.7,.3,1) both; }
+/* El spec dice "el marco y la línea de horizonte se trazan de izquierda a
+   derecha" -- la línea de superficie de ese trazo es la estepa. 1217 y no
+   1200: es un `path` ondulado, más largo que la recta del horizonte
+   (`getTotalLength()` mide 1216,41 con el `d` real de `corte.js`; se redondea
+   PARA ARRIBA para no dejar un resto sin trazar). Arranca 150ms después y
+   dura 200ms más que el horizonte (1300ms contra 1100ms): trazadas a la vez
+   y a la misma velocidad, las dos leían como una sola línea duplicada: con
+   este desfase se despegan y cada una se lee como su propio trazo. */
+.hero--entrando .corte__estepa { stroke-dasharray: 1217; animation: corte-trazar 1300ms cubic-bezier(.2,.7,.3,1) 150ms both; }
 .hero--entrando .corte__escala { animation: corte-aparecer 500ms 300ms both; }
 
 /* ---------- Acto II: la roca se deposita, de abajo hacia arriba ---------- */
@@ -169,7 +181,13 @@
   transform-box: fill-box;
   animation: corte-extender 520ms cubic-bezier(.2,.7,.3,1) 3900ms both;
 }
-.hero--entrando .balancin { animation: corte-subir 620ms cubic-bezier(.2,.7,.3,1) 3800ms both; }
+/* El spec: "los balancines y la torre suben últimos." La antorcha no está
+   nombrada, pero dejarla quieta y presente desde el cuadro cero mientras
+   todo lo demás entra se ve roto, no intencional -- así que sube con la
+   torre acá y titila recién en el Acto V, como ya estaba. */
+.hero--entrando .balancin, .hero--entrando .corte__torre, .hero--entrando .corte__antorcha {
+  animation: corte-subir 620ms cubic-bezier(.2,.7,.3,1) 3800ms both;
+}
 
 /* ---------- Acto V: el campo trabaja ---------- */
 /* Tres períodos distintos: el campo no sincroniza nunca. Y el contrapeso gira
@@ -251,6 +269,7 @@
   }
   .corte__horizonte { stroke-dasharray: none; }
   .corte__lateral { stroke-dasharray: none; }
+  .corte__estepa { stroke-dasharray: none; }
 }
 
 /* ---------- Angosto ---------- */
