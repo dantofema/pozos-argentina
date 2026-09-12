@@ -8,7 +8,7 @@ export default defineConfig({
     target: ['chrome89', 'edge89', 'firefox89', 'safari15'],
   },
   test: {
-    include: ['src/**/*.test.js', 'scripts/**/*.test.mjs'],
+    include: ['src/**/*.test.js', 'scripts/**/*.test.mjs', 'tests/*.test.js'],
     exclude: ['tests/contrato/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
