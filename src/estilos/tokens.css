@@ -19,7 +19,7 @@
   --c-linea-claro:      #D8D2C7;
   --c-linea-oscuro:     #26323A;
   --c-superficie-claro: #FBFAF7;
-  --c-superficie-oscuro:#1C242A;
+  --c-superficie-oscuro: #1C242A;
 
   /* Tokens de uso. Todo el resto de la hoja habla sólo con estos. */
   --papel:      var(--c-papel-claro);

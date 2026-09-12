@@ -66,4 +66,11 @@ describe('tokens', () => {
     expect(iRoot).toBeLessThan(iMedia)
     expect(iRoot).toBeLessThan(iTema)
   })
+
+  // C2: --vaca es la roca madre del corte geológico, no un segundo acento.
+  // Si algo en herramienta.css lo reusa como color de estado, esto lo frena acá.
+  it('no usa --vaca fuera del corte: está reservado para la roca madre (C2)', () => {
+    const herramienta = readFileSync(new URL('./herramienta.css', import.meta.url), 'utf-8')
+    expect(herramienta).not.toContain('var(--vaca)')
+  })
 })

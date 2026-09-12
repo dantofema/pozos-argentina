@@ -109,9 +109,9 @@
 .herramientas__boton:hover { background: #f5f7f8; }
 .herramientas__boton:focus-visible { outline: 2px solid var(--cobre); outline-offset: 1px; }
 .herramientas__boton--activo {
-  background: var(--vaca);
-  border-color: var(--vaca);
-  color: #fff;
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
   font-weight: 600;
 }
 
