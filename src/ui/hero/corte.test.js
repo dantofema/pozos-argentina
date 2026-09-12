@@ -253,4 +253,43 @@ describe('construirCorte', () => {
       expect(xAbsolutoCable, 'el cable no cae sobre el pozo de su balancín').toBeCloseTo(xAbsolutoCasing, 0)
     })
   })
+
+  // --- Tercera ronda: dos colisiones tipográficas que la revisión encontró ---
+  // jsdom no implementa getBBox() (no hay layout de texto real), así que
+  // estos tests no pueden medir anchos de glifo como se hizo en la
+  // verificación visual con Chrome headless (documentada en el reporte).
+  // Son un piso conservador sobre las coordenadas fuente, para atajar el
+  // tipo exacto de regresión que causó las dos colisiones: dos valores de
+  // `x`/`y` puestos a mano en `corte.js` que se desalinean en silencio.
+
+  it('la leyenda de la escala no se pisa con la última marca (3.000 m)', () => {
+    const caja = montar()
+    const marcas = [...caja.querySelectorAll('.corte__marca text')]
+    const ultimaMarcaY = Number(marcas.at(-1).getAttribute('y'))
+    const leyendaY = Number(caja.querySelector('.corte__leyenda').getAttribute('y'))
+    expect(leyendaY - ultimaMarcaY, 'la leyenda quedó pegada a la última marca de profundidad').toBeGreaterThan(20)
+  })
+
+  it('el casing del primer pozo queda lejos del rótulo de la roca madre, el más largo de los nueve (I5)', () => {
+    const caja = montar()
+    const rotuloMadre = caja.querySelector('.corte__estrato--madre .corte__rotulo')
+    const xRotulo = Number(rotuloMadre.getAttribute('x'))
+    const xCasing0 = Number(caja.querySelectorAll('.corte__casing')[0].getAttribute('x1'))
+    // Medido con getBBox() en Chrome headless con el manifiesto de
+    // referencia: el rótulo completo ("VACA MUERTA · ROCA MADRE ·
+    // 3.547 pozos") llega a ~360px de ancho. Dejo piso en 380 para nombres o
+    // cifras algo más largos que los del manifiesto de referencia.
+    expect(xCasing0 - xRotulo, 'el casing del primer pozo quedó demasiado cerca del rótulo de la roca madre').toBeGreaterThan(380)
+  })
+
+  it('los laterales de los pozos no se salen del lienzo', () => {
+    const caja = montar()
+    for (const l of caja.querySelectorAll('.corte__lateral')) {
+      for (const atributo of ['x1', 'x2']) {
+        const x = Number(l.getAttribute(atributo))
+        expect(x, `${atributo} del lateral se sale del lienzo`).toBeGreaterThanOrEqual(0)
+        expect(x, `${atributo} del lateral se sale del lienzo`).toBeLessThanOrEqual(GEOMETRIA.ANCHO)
+      }
+    }
+  })
 })

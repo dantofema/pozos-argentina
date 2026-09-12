@@ -8,9 +8,17 @@ import { normalizar } from '../../lib/catalogo.js'
  */
 export const GEOMETRIA = { ANCHO: 1200, ALTO: 720, HORIZONTE: 260 }
 
-/** Los tres balancines: x, escala y período del cabeceo. */
+/**
+ * Los tres balancines: x, escala y período del cabeceo. El primero vive más
+ * lejos del margen que los otros dos (x=400 y no, por ejemplo, 210): el
+ * rótulo de Vaca Muerta es el más largo de los nueve —suma "· ROCA
+ * MADRE"— y con menos separación su casing de cobre lo atraviesa (I5: es
+ * justo el rótulo que tiene que leerse completo). Ver CABEZA_CABLE_X: el
+ * casing de este balancín cae en x=400+57=457, después del borde derecho
+ * medido del rótulo (~434 con el manifiesto de referencia).
+ */
 const BALANCINES = [
-  { x: 210, escala: 1.0,  periodo: '4s' },
+  { x: 400, escala: 1.0,  periodo: '4s' },
   { x: 560, escala: 0.78, periodo: '4.7s' },
   { x: 890, escala: 0.62, periodo: '5.3s' },
 ]
@@ -196,8 +204,14 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   // Las marcas viven en su propio canal, pegado al margen izquierdo
   // (x=0..~60): el rótulo de cada banda arranca en x=74 (arriba) para que
   // ninguno de los dos se pise (antes ambos arrancaban cerca de x=20/24).
+  //
+  // La última marca (3.000 m) no llega hasta el borde inferior del todo: le
+  // resto MARGEN_LEYENDA al recorrido para dejarle un canal propio a la
+  // leyenda "PROFUNDIDAD (m) · ESQUEMÁTICO", que vive pegada al borde. Antes
+  // las dos se pisaban (9px entre baselines, con 10-11px de tipografía).
+  const MARGEN_LEYENDA = 40
   const escala = [0, 1000, 2000, 3000].map((m) => {
-    const y = HORIZONTE + (m / 3000) * (ALTO - HORIZONTE)
+    const y = HORIZONTE + (m / 3000) * (ALTO - MARGEN_LEYENDA - HORIZONTE)
     return `
       <g class="corte__marca">
         <line x1="0" y1="${y}" x2="14" y2="${y}" />
