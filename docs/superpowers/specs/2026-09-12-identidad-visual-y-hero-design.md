@@ -157,16 +157,25 @@ Escala de tipos, base 16px, razón 1,25:
 ## 7. La ilustración: anatomía del corte
 
 Un solo SVG inline, construido en JS a partir del manifiesto. `viewBox="0 0 1200 720"`,
-`preserveAspectRatio="xMidYMax meet"`.
+`preserveAspectRatio="xMinYMax slice"`, y **llena el hero entero**, con el texto
+superpuesto sobre el cielo.
 
-Corregido el 2026-09-12: este spec decía `slice`, que recorta para cubrir la caja. Está mal
-para este dibujo y la medición lo probó: en un viewport de 1920×1080 la banda de Vaca Muerta
-—el foco del Acto III— desaparecía entera, y en los cuatro viewports probados se perdían
-tres formaciones y la leyenda de profundidad. `slice` sirve para fondos fotográficos, donde
-recortar no cuesta nada; acá el contenido recortado son los estratos con sus conteos, que son
-el dato. `meet` encaja el dibujo entero y nunca pierde nada; `YMax` lo ancla abajo, así que
-el subsuelo se apoya sobre el buscador y el aire sobrante queda en el cielo, que es la parte
-prescindible.
+Corregido dos veces el 2026-09-12, y la segunda corrige a la primera. El spec decía
+`xMidYMid slice` con el dibujo metido en una fila del grid que compartía el alto con el
+texto. Medido, eso perdía la banda de Vaca Muerta entera en 1920×1080. La primera corrección
+pasó a `meet`, que no pierde nada, pero al mirarlo el dibujo quedaba a 733×440 flotando con
+márgenes vacíos y rótulos de 6 a 8 píxeles: no perdía dato y perdía el hero.
+
+La salida es que el dibujo **llene el hero entero** y el texto se apoye encima, sobre el
+cielo. Es aritmética: el corte es 1,67:1 y el aspecto de un viewport típico va de 1,60 a
+1,78, casi el mismo, así que a pantalla completa el recorte es de 45 unidades de cielo o
+ninguno, y los rótulos se ven a entre 15 y 21 píxeles. Es además la composición aprobada en
+el brainstorming —título, ilustración, buscador— que la primera versión de la hoja desvió.
+
+El anclaje `xMinYMax` tiene dos razones: **abajo**, porque lo prescindible es el cielo y el
+subsuelo tiene que apoyarse sobre el buscador; y **a la izquierda**, porque en pantallas
+angostas el recorte pasa a ser horizontal y los rótulos de las formaciones viven en el borde
+izquierdo — centrado, un móvil los cortaría al medio.
 
 La línea de horizonte está en `y=260`: **el subsuelo ocupa casi dos tercios**, porque es
 donde está el dato. Esa misma línea es la base sobre la que se apoya el buscador, así que
