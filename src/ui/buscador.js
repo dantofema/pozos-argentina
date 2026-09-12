@@ -122,6 +122,22 @@ export function crearBuscador(contenedor, facetas, alElegir) {
 
   return {
     limpiar: limpiarTodo,
+
+    /**
+     * Muestra en el campo el ámbito que está vigente. Lo llama `aplicar`, así
+     * que un enlace compartido y el botón Atrás del navegador muestran lo que
+     * está aplicado y no lo que se había elegido antes.
+     */
+    reflejar(estado) {
+      if (estado?.modo === 'faceta' && estado.valor) {
+        elegido = estado
+        entrada.value = estado.cuenca ? `${estado.valor} (${estado.cuenca})` : estado.valor
+        botonLimpiar.hidden = false
+        cerrarLista()
+      } else {
+        limpiarTodo()
+      }
+    },
     /** Lo elegido, o null si no hay nada elegido. */
     seleccion: () => elegido,
   }

@@ -71,6 +71,7 @@ try {
     if (estado.modo === 'poligono') mapa.mostrarZona(estado.poligono)
     else mapa.borrarZona()
     herramientas.marcarZona(mapa.hayZona())
+    buscador.reflejar(estado)
 
     const ids = estado.modo === 'faceta'
       ? porFaceta(catalogo, estado.tipo, estado.valor, estado.cuenca)
@@ -125,20 +126,17 @@ try {
   })
 
   mapa.alDibujar((anillo) => {
-    buscador.limpiar()
     aplicar({ modo: 'poligono', tipo: null, valor: null, cuenca: null, poligono: anillo })
   })
 
   const herramientas = crearHerramientas(document.querySelector('#herramientas'), {
     alDibujar: () => mapa.alternarDibujo(),
+    // `aplicar` con el estado vacío ya borra la zona y limpia el buscador.
     alBorrarZona: () => {
-      mapa.borrarZona()
       history.pushState(null, '', location.pathname)
       aplicar(leerEstado(''), { empujarHistorial: false })
     },
     alVolver: () => {
-      buscador.limpiar()
-      mapa.borrarZona()
       mapa.volverAlInicio()
       history.pushState(null, '', location.pathname)
       aplicar(leerEstado(''), { empujarHistorial: false })

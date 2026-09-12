@@ -16,7 +16,12 @@ body {
   /* Tres filas: encabezado, barra de búsqueda, y el área de trabajo, que es la
      que absorbe el espacio libre. */
   grid-template-rows: auto auto 1fr;
-  height: 100vh;
+  /* min-height y no height: si la barra se envuelve en una pantalla baja, el
+     mapa llega a su piso y algo tiene que ceder. Con `height` la página
+     scrollea igual pero peleando contra un alto fijo; con `min-height` crece
+     y scrollea de forma natural, y cuando hay lugar el mapa sigue absorbiendo
+     el espacio libre. */
+  min-height: 100vh;
   background: var(--papel);
   color: var(--tinta);
   font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -211,7 +216,6 @@ body {
 
 /* ---------- Angosto: se apila, con el mapa primero ---------- */
 @media (max-width: 820px) {
-  body { height: auto; min-height: 100vh; }
   .area { grid-template-columns: 1fr; }
   .mapa { min-height: 60vh; }
   .lateral { border-left: 0; border-top: 1px solid var(--linea); }

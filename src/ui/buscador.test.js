@@ -189,3 +189,43 @@ describe('al elegir un resultado', () => {
     expect(elegida).toMatchObject({ tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL' })
   })
 })
+
+describe('reflejar el ámbito vigente', () => {
+  it('muestra la faceta aplicada aunque no se haya elegido desde el buscador', () => {
+    const b = crearBuscador(contenedor, facetas, () => {})
+    b.reflejar({ modo: 'faceta', tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL' })
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('EL TORDILLO (AUSTRAL)')
+    expect(contenedor.querySelector('.buscador__limpiar').hidden).toBe(false)
+  })
+
+  it('pisa una selección anterior: es el caso del botón Atrás', () => {
+    const b = crearBuscador(contenedor, facetas, () => {})
+    escribir('ypf')[0].click()
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('YPF S.A.')
+
+    b.reflejar({ modo: 'faceta', tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL' })
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('EL TORDILLO (AUSTRAL)')
+  })
+
+  it('un ámbito de zona dibujada limpia el campo: no hay faceta que mostrar', () => {
+    const b = crearBuscador(contenedor, facetas, () => {})
+    escribir('ypf')[0].click()
+    b.reflejar({ modo: 'poligono', poligono: [[-69, -39], [-68, -39], [-68, -38]] })
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('')
+    expect(contenedor.querySelector('.buscador__limpiar').hidden).toBe(true)
+  })
+
+  it('el estado vacío limpia', () => {
+    const b = crearBuscador(contenedor, facetas, () => {})
+    escribir('ypf')[0].click()
+    b.reflejar({ modo: 'vacio' })
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('')
+  })
+
+  it('cierra la lista de opciones si estaba abierta', () => {
+    const b = crearBuscador(contenedor, facetas, () => {})
+    expect(escribir('ypf').length).toBeGreaterThan(0)
+    b.reflejar({ modo: 'faceta', tipo: 'empresa', valor: 'YPF S.A.', cuenca: null })
+    expect(contenedor.querySelectorAll('.buscador__opcion')).toHaveLength(0)
+  })
+})
