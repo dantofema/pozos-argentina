@@ -126,3 +126,66 @@ describe('selector de tipo', () => {
     expect(tipos.every((t) => t === 'Pozo')).toBe(true)
   })
 })
+
+describe('al elegir un resultado', () => {
+  it('cierra la lista y muestra lo elegido en el campo', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    expect(escribir('tordillo')).toHaveLength(2)
+
+    contenedor.querySelectorAll('.buscador__opcion')[0].click()
+
+    expect(contenedor.querySelectorAll('.buscador__opcion')).toHaveLength(0)
+    expect(contenedor.querySelector('.buscador__entrada').value).toContain('EL TORDILLO')
+  })
+
+  it('la selección incluye la cuenca, que es lo que la distingue del homónimo', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('tordillo').find((b) => b.textContent.includes('AUSTRAL')).click()
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('EL TORDILLO (AUSTRAL)')
+  })
+
+  it('una operadora, que no lleva cuenca, se muestra sola', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('ypf')[0].click()
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('YPF S.A.')
+  })
+
+  it('aparece el botón de borrar, y borra', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    const limpiar = contenedor.querySelector('.buscador__limpiar')
+    expect(limpiar.hidden).toBe(true)
+
+    escribir('ypf')[0].click()
+    expect(limpiar.hidden).toBe(false)
+
+    limpiar.click()
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('')
+    expect(limpiar.hidden).toBe(true)
+  })
+
+  it('escribir encima de una selección vuelve a buscar', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('ypf')[0].click()
+    expect(contenedor.querySelectorAll('.buscador__opcion')).toHaveLength(0)
+
+    const opciones = escribir('tordillo')
+    expect(opciones.length).toBeGreaterThan(0)
+    expect(contenedor.querySelector('.buscador__limpiar').hidden).toBe(true)
+  })
+
+  it('cambiar de tipo con algo elegido descarta la selección', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('ypf')[0].click()
+    const s = contenedor.querySelector('.buscador__tipo-sel')
+    s.value = 'sigla'
+    s.dispatchEvent(new Event('change'))
+    expect(contenedor.querySelector('.buscador__entrada').value).toBe('')
+  })
+
+  it('entrega al callback la faceta completa', () => {
+    let elegida = null
+    crearBuscador(contenedor, facetas, (f) => { elegida = f })
+    escribir('tordillo').find((b) => b.textContent.includes('AUSTRAL')).click()
+    expect(elegida).toMatchObject({ tipo: 'yacimiento', valor: 'EL TORDILLO', cuenca: 'AUSTRAL' })
+  })
+})

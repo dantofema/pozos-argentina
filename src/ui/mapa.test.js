@@ -233,3 +233,50 @@ describe('pozos en el mapa', () => {
     expect(marcadores()).toBe(1)
   })
 })
+
+describe('la zona elegida', () => {
+  const cuadrado = [[-69, -39], [-68, -39], [-68, -38], [-69, -38]]
+
+  it('arranca sin zona', () => {
+    expect(m.hayZona()).toBe(false)
+  })
+
+  it('mostrarZona la deja en el mapa', () => {
+    m.mostrarZona(cuadrado)
+    expect(m.hayZona()).toBe(true)
+  })
+
+  it('borrarZona la saca', () => {
+    m.mostrarZona(cuadrado)
+    m.borrarZona()
+    expect(m.hayZona()).toBe(false)
+  })
+
+  it('mostrarZona reemplaza la anterior, no acumula', () => {
+    m.mostrarZona(cuadrado)
+    m.mostrarZona([[-70, -40], [-69, -40], [-69, -39], [-70, -39]])
+    expect(m.hayZona()).toBe(true)
+    // Una sola: el polígono de la zona es el único que queda.
+    const poligonos = Object.values(m.mapa._layers).filter((c) => c instanceof L.Polygon)
+    expect(poligonos).toHaveLength(1)
+  })
+
+  it('un anillo degenerado no deja zona', () => {
+    m.mostrarZona([[-69, -39], [-68, -39]])
+    expect(m.hayZona()).toBe(false)
+  })
+
+  it('la zona sobrevive a volver al inicio: sigue siendo el ámbito elegido', () => {
+    m.mostrarZona(cuadrado)
+    m.volverAlInicio()
+    expect(m.hayZona()).toBe(true)
+  })
+
+  it('encuadrarZona lleva la vista a la zona, para que se vea entera', () => {
+    m.mapa.setView([-20, -60], 10)
+    m.mostrarZona(cuadrado)
+    m.encuadrarZona()
+    const vista = m.mapa.getBounds()
+    expect(vista.contains(L.latLngBounds([[-39, -69], [-38, -68]]))).toBe(true)
+  })
+})

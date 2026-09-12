@@ -6,6 +6,18 @@ import { WMS, CAPAS_CONTEXTO, ARGENMAP } from './capas.js'
 /** Vista de arranque: el país entero. */
 export const VISTA_INICIAL = { centro: [-40, -64], zoom: 4 }
 
+/**
+ * Azul petróleo y no cobre: los pozos son cobre, y la zona tiene que leerse
+ * contra ellos. El trazo punteado mientras se arrastra dice "todavía no está";
+ * al soltar queda continuo, que es la forma asentada.
+ */
+const ZONA_TENTATIVA = {
+  color: '#0369A1', weight: 2, dashArray: '6 4', fillColor: '#0369A1', fillOpacity: 0.10,
+}
+const ZONA_ASENTADA = {
+  color: '#0369A1', weight: 2, fillColor: '#0369A1', fillOpacity: 0.12,
+}
+
 function capaWms(capa) {
   return L.tileLayer.wms(WMS, {
     layers: capa,
@@ -46,6 +58,9 @@ export function crearMapa(contenedor, { preferCanvas = true } = {}) {
   let armado = false
   let inicio = null
   let rectangulo = null
+  // La zona elegida se queda en el mapa: es la representación de lo que el
+  // usuario seleccionó. Borrarla al soltar dejaba el ámbito sin nada que mirar.
+  let zona = null
 
   function limpiarGesto() {
     inicio = null
@@ -59,9 +74,8 @@ export function crearMapa(contenedor, { preferCanvas = true } = {}) {
   function alMover(e) {
     if (!inicio) return
     if (rectangulo) rectangulo.remove()
-    rectangulo = L.rectangle(L.latLngBounds(inicio, mapa.mouseEventToLatLng(e)), {
-      color: '#0369A1', weight: 1, fillOpacity: 0.08,
-    }).addTo(mapa)
+    rectangulo = L.rectangle(L.latLngBounds(inicio, mapa.mouseEventToLatLng(e)), ZONA_TENTATIVA)
+      .addTo(mapa)
   }
 
   function alSoltar(e) {
@@ -128,6 +142,26 @@ export function crearMapa(contenedor, { preferCanvas = true } = {}) {
       if (filas.length === 0) return
       const limites = L.latLngBounds(filas.map((f) => [f[LITE.LAT], f[LITE.LON]]))
       mapa.fitBounds(limites, { padding: [24, 24] })
+    },
+
+    /** Dibuja la zona elegida y la deja en el mapa. `anillo` es [[lon, lat], …]. */
+    mostrarZona(anillo) {
+      this.borrarZona()
+      if (!anillo || anillo.length < 3) return
+      zona = L.polygon(anillo.map(([lon, lat]) => [lat, lon]), ZONA_ASENTADA).addTo(mapa)
+    },
+
+    borrarZona() {
+      if (zona) { zona.remove(); zona = null }
+    },
+
+    hayZona() {
+      return zona !== null
+    },
+
+    /** Encuadra la zona dibujada, si hay. */
+    encuadrarZona() {
+      if (zona) mapa.fitBounds(zona.getBounds(), { padding: [24, 24] })
     },
 
     /** Vuelve a la vista de arranque, sin tocar el ámbito elegido. */

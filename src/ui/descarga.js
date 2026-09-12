@@ -11,7 +11,7 @@ export function nombreArchivo(estado) {
     const base = `pozos-${estado.tipo}-${aRanura(estado.valor)}`
     return estado.cuenca ? `${base}-${aRanura(estado.cuenca)}.csv` : `${base}.csv`
   }
-  if (estado.modo === 'poligono') return 'pozos-recorte.csv'
+  if (estado.modo === 'poligono') return 'pozos-zona.csv'
   return 'pozos.csv'
 }
 
@@ -31,34 +31,55 @@ export function descargarCsv(texto, nombre) {
 export function crearPanelDescarga(contenedor) {
   contenedor.innerHTML = `
     <div class="descarga" hidden>
-      <p class="descarga__resumen"></p>
+      <dl class="descarga__datos"></dl>
+      <p class="descarga__aviso" hidden></p>
       <button type="button" class="descarga__boton">Descargar CSV</button>
     </div>`
   const panel = contenedor.querySelector('.descarga')
-  const resumen = contenedor.querySelector('.descarga__resumen')
+  const datos = contenedor.querySelector('.descarga__datos')
+  const aviso = contenedor.querySelector('.descarga__aviso')
   const boton = contenedor.querySelector('.descarga__boton')
+
+  /** Pinta pares etiqueta/valor, uno por fila. `textContent` porque vienen del dato. */
+  function pintarDatos(filas) {
+    datos.innerHTML = ''
+    for (const { etiqueta, valor } of filas) {
+      const dt = document.createElement('dt')
+      dt.textContent = etiqueta
+      const dd = document.createElement('dd')
+      dd.textContent = valor
+      datos.append(dt, dd)
+    }
+    datos.hidden = filas.length === 0
+  }
+
+  function mostrarAviso(texto) {
+    aviso.textContent = texto
+    aviso.hidden = !texto
+  }
 
   return {
     /**
-     * Ámbito con pozos: resumen + botón habilitado. El click deshabilita el
-     * botón mientras dura la descarga (así un segundo click no dispara una
-     * segunda carga de la misma cuenca) y, si `alDescargar` rechaza, lo dice
-     * en el propio resumen en vez de dejar el rechazo sin manejar.
+     * Ámbito con pozos: los datos etiquetados y el botón habilitado. El click
+     * deshabilita el botón mientras dura la descarga (así un segundo click no
+     * dispara una segunda carga de la misma cuenca) y, si `alDescargar`
+     * rechaza, lo dice en el aviso en vez de dejar el rechazo sin manejar.
      */
-    mostrar({ texto, alDescargar }) {
-      resumen.textContent = texto
+    mostrar({ filas, alDescargar }) {
+      pintarDatos(filas)
+      mostrarAviso('')
       boton.hidden = false
       boton.disabled = false
       boton.onclick = async () => {
         if (boton.disabled) return
         boton.disabled = true
-        resumen.textContent = 'Preparando el CSV…'
+        mostrarAviso('Preparando el CSV…')
         try {
           await alDescargar()
-          resumen.textContent = texto
+          mostrarAviso('')
         } catch (error) {
           console.error('No se pudo generar el CSV:', error)
-          resumen.textContent = 'No se pudo generar el CSV. Probá de nuevo en unos minutos.'
+          mostrarAviso('No se pudo generar el CSV. Probá de nuevo en unos minutos.')
         } finally {
           boton.disabled = false
         }
@@ -66,10 +87,10 @@ export function crearPanelDescarga(contenedor) {
       panel.hidden = false
     },
 
-    /** Ámbito sin pozos (p.ej. un enlace compartido a una faceta que ya no existe): sólo texto, sin botón. */
+    /** Ámbito sin pozos (p.ej. un enlace compartido a una faceta que ya no existe). */
     mostrarVacio(texto) {
-      resumen.textContent = texto
-      boton.onclick = null
+      pintarDatos([])
+      mostrarAviso(texto)
       boton.hidden = true
       panel.hidden = false
     },

@@ -15,6 +15,15 @@ export const COLUMNAS_DICT = [
 /** Tipos de faceta buscables. */
 export const TIPOS_FACETA = ['area', 'yacimiento', 'empresa', 'cuenca', 'sigla']
 
+/** Cómo se nombra cada tipo de faceta en la interfaz. */
+export const ETIQUETA_TIPO = {
+  area: 'Área',
+  yacimiento: 'Yacimiento',
+  empresa: 'Operadora',
+  cuenca: 'Cuenca',
+  sigla: 'Pozo',
+}
+
 /**
  * Si la cuenca acota o no a ese tipo de faceta.
  *

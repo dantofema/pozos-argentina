@@ -1,12 +1,5 @@
 import { buscar } from '../lib/catalogo.js'
-
-const ETIQUETA = {
-  area: 'Área',
-  yacimiento: 'Yacimiento',
-  empresa: 'Operadora',
-  cuenca: 'Cuenca',
-  sigla: 'Pozo',
-}
+import { ETIQUETA_TIPO } from '../lib/esquema.js'
 
 /** Opciones del selector, en el orden en que se muestran. */
 const OPCIONES = [
@@ -27,8 +20,11 @@ export function crearBuscador(contenedor, facetas, alElegir) {
     <div class="buscador">
       <label class="buscador__campo">
         <span class="buscador__etiqueta">Buscar</span>
-        <input type="search" class="buscador__entrada" autocomplete="off"
-               placeholder="Loma Campana, YPF, Cañadón Seco…" />
+        <span class="buscador__caja">
+          <input type="search" class="buscador__entrada" autocomplete="off"
+                 placeholder="Loma Campana, YPF, Cañadón Seco…" />
+          <button type="button" class="buscador__limpiar" hidden aria-label="Borrar la búsqueda">×</button>
+        </span>
       </label>
       <label class="buscador__campo buscador__campo--tipo">
         <span class="buscador__etiqueta">En</span>
@@ -42,6 +38,15 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   const entrada = contenedor.querySelector('.buscador__entrada')
   const selector = contenedor.querySelector('.buscador__tipo-sel')
   const lista = contenedor.querySelector('.buscador__resultados')
+  const botonLimpiar = contenedor.querySelector('.buscador__limpiar')
+
+  /** Con algo elegido, la lista se cierra: lo que importa pasa a ser la selección. */
+  let elegido = null
+
+  function cerrarLista() {
+    lista.innerHTML = ''
+    lista.hidden = true
+  }
 
   // Se agrupa una sola vez: en "Todos" hay ~80.000 facetas de pozo y filtrarlas
   // en cada tecla sería rehacer el array entero cada vez.
@@ -65,6 +70,7 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   }
 
   function pintar() {
+    lista.hidden = false
     lista.innerHTML = ''
     for (const r of resultados(entrada.value)) {
       const li = document.createElement('li')
@@ -72,7 +78,7 @@ export function crearBuscador(contenedor, facetas, alElegir) {
       boton.type = 'button'
       boton.className = 'buscador__opcion'
       boton.innerHTML =
-        `<span class="buscador__tipo">${ETIQUETA[r.tipo] ?? r.tipo}</span>` +
+        `<span class="buscador__tipo">${ETIQUETA_TIPO[r.tipo] ?? r.tipo}</span>` +
         '<span class="buscador__valor"></span>' +
         '<span class="buscador__cuenca"></span>' +
         `<span class="buscador__cantidad">${r.cantidad.toLocaleString('es-AR')} ` +
@@ -80,20 +86,43 @@ export function crearBuscador(contenedor, facetas, alElegir) {
       // textContent y no innerHTML: estos dos vienen del dato.
       boton.querySelector('.buscador__valor').textContent = r.valor
       boton.querySelector('.buscador__cuenca').textContent = r.cuenca ?? ''
-      boton.onclick = () => alElegir(r)
+      boton.onclick = () => {
+        elegido = r
+        entrada.value = r.cuenca ? `${r.valor} (${r.cuenca})` : r.valor
+        botonLimpiar.hidden = false
+        cerrarLista()
+        alElegir(r)
+      }
       li.appendChild(boton)
       lista.appendChild(li)
     }
   }
 
-  entrada.addEventListener('input', pintar)
-  selector.addEventListener('change', pintar)
+  function limpiarTodo() {
+    elegido = null
+    entrada.value = ''
+    selector.value = 'todos'
+    botonLimpiar.hidden = true
+    cerrarLista()
+  }
+
+  entrada.addEventListener('input', () => {
+    // Escribir sobre una selección la descarta: se vuelve a buscar.
+    if (elegido) { elegido = null; botonLimpiar.hidden = true }
+    pintar()
+  })
+  selector.addEventListener('change', () => {
+    if (elegido) { elegido = null; entrada.value = ''; botonLimpiar.hidden = true }
+    pintar()
+  })
+  botonLimpiar.addEventListener('click', () => {
+    limpiarTodo()
+    entrada.focus()
+  })
 
   return {
-    limpiar() {
-      entrada.value = ''
-      selector.value = 'todos'
-      lista.innerHTML = ''
-    },
+    limpiar: limpiarTodo,
+    /** Lo elegido, o null si no hay nada elegido. */
+    seleccion: () => elegido,
   }
 }
