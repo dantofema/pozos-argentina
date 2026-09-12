@@ -402,7 +402,11 @@ src/
   tiempos. Expone `entrar()`, `reposo()`, `pausar()`, `reanudar()`, `salir()`.
 - **A3.** `hero.js` es el único que habla con `main.js`. Expone
   `crearHero(contenedor, { manifiesto })`, que devuelve
-  `{ montarBuscador(facetas, alElegir), relevar(), destruir() }`. El hero no construye el
+  `{ montarBuscador(facetas, alElegir), relevar(), estado() }`. No hay `destruir()`: la
+  limpieza —sacar el hero del DOM y desconectar sus escuchas— ocurre dentro de `relevar()`,
+  porque el hero se releva una sola vez y no vuelve (E3), así que no existe un caso donde
+  haga falta destruirlo sin relevarlo. `estado()` es lo que `main.js` necesita para saber si
+  ya se fue. El hero no construye el
   buscador: recibe las facetas cuando el índice llega y delega en `crearBuscador`, el
   mismo componente de la herramienta (X2). Así el buscador no se duplica ni se reimplementa.
 - **A4.** `style.css` pasa a ser el punto de entrada que importa los cuatro parciales. Un
