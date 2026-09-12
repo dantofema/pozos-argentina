@@ -9,15 +9,16 @@ import { readFileSync } from 'node:fs'
  * no una "a" seguida de un combinante-, así que la única forma en que ese
  * rango aparece crudo en el repo es un regex de normalización escrito con los
  * puntos de código literales en vez de escapados.
- * Pasó cuatro veces en esta rama -dos escribiendo el plan y un módulo a mano,
- * una en el brief de una tarea, una al aplicar una edición con una
- * herramienta- y cada vez el código funcionaba igual pero quedaba ilegible, y
+ * Pasó cinco veces en esta rama -dos escribiendo el plan y un módulo a mano,
+ * una en el brief de una tarea, y dos aplicando ediciones con una
+ * herramienta, una en este mismo regex y otra al escribir este archivo de
+ * guarda- y cada vez el código funcionaba igual pero quedaba ilegible, y
  * sólo se detectaba mirando los bytes uno por uno.
  */
 
 const RANGO_COMBINANTE_CRUDO = /[\u0300-\u036f]/
 
-const PATRONES = ['src/**/*.js', 'src/**/*.css', 'scripts/**/*.mjs', 'index.html', 'docs/**/*.md']
+const PATRONES = ['src/**/*.js', 'src/**/*.css', 'scripts/**/*.mjs', 'index.html', 'docs/**/*.md', 'tests/*.js']
 
 // Este archivo, que por fuerza menciona el rango en el comentario de arriba y
 // en el mensaje de abajo, no se escanea a sí mismo.
