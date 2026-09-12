@@ -34,9 +34,30 @@
 .hero__buscador { padding: 1.2rem clamp(20px, 5vw, 72px) 0; }
 
 /* El corte reserva su caja desde el primer cuadro, antes de tener datos: sin
-   esto el hero salta de alto cuando llega el manifiesto (E6). */
+   esto el hero salta de alto cuando llega el manifiesto (E6).
+
+   `width: 100%` no es cosmético: sin un ancho explícito en el eje inline,
+   este grid de una sola columna no estira la caja horizontalmente --
+   `align-self: stretch` sólo gobierna el eje de bloque (el alto)-- y con
+   `aspect-ratio` puesto el ancho terminaba derivándose del alto en vez de
+   estirarse: la caja quedaba angosta y centrada, con el corte recortado al
+   40-50% del ancho real (medido con getBoundingClientRect() contra el
+   markup de la Tarea 7). Con `width: 100%` el ancho queda explícito y deja
+   de haber nada que `aspect-ratio` tenga que resolver en ese eje.
+
+   El alto lo sigue fijando `align-self: stretch` contra lo que sobre en la
+   fila `1fr`, o el piso de `min-height`, lo que sea mayor -- `aspect-ratio`
+   no llega a aplicarse tampoco ahí, porque los dos ejes ya quedan resueltos
+   por otra vía. La caja casi nunca respeta 1200:720 de verdad, así que el
+   `slice` de `corte.js` recorta bastante y, contra el título real de la
+   Tarea 7, a viewports típicos se come formaciones enteras -- incluida
+   Vaca Muerta a 1920×1080. Es un problema real del presupuesto vertical del
+   hero (título + bajada + dato + buscador + corte no entran juntos en un
+   viewport típico), no resuelto acá: detalle y evidencia en el reporte de
+   la Tarea 6. */
 .hero__dibujo {
   position: relative;
+  width: 100%;
   min-height: 42vh;
   aspect-ratio: 1200 / 720;
   align-self: stretch;

@@ -126,6 +126,31 @@ describe('crearCoreografia', () => {
   })
 })
 
+/**
+ * El cuerpo completo de un `@keyframes`, balanceando llaves en vez de buscar
+ * un `\n}` en línea propia. Esta hoja mezcla keyframes de una sola línea
+ * (`@keyframes corte-trazar { from {...} to {...} }`) con uno multilínea
+ * (`antorcha-titilar`): buscar el primer `\n}` desde el nombre del keyframe
+ * se pasaba de largo hasta el cierre del *siguiente* keyframe multilínea,
+ * arrastrando varios keyframes de más adentro del cuerpo "de uno solo".
+ * Devuelve `null` si el nombre no existe o si el CSS está roto (llave sin
+ * cerrar).
+ */
+function bloqueDeKeyframe(css, nombre) {
+  const inicio = css.indexOf(`@keyframes ${nombre}`)
+  if (inicio < 0) return null
+  const apertura = css.indexOf('{', inicio)
+  let profundidad = 0
+  for (let i = apertura; i < css.length; i++) {
+    if (css[i] === '{') profundidad++
+    else if (css[i] === '}') {
+      profundidad--
+      if (profundidad === 0) return css.slice(apertura, i + 1)
+    }
+  }
+  return null
+}
+
 describe('presupuesto de propiedades animadas (G3)', () => {
   it('el reposo sólo anima transform y opacity', async () => {
     const { readFileSync } = await import('node:fs')
@@ -146,10 +171,16 @@ describe('presupuesto de propiedades animadas (G3)', () => {
 
     const PERMITIDAS = new Set(['transform', 'opacity', 'stroke-dashoffset'])
     for (const nombre of usadosEnReposo) {
-      const i = css.indexOf(`@keyframes ${nombre}`)
-      expect(i, `no existe @keyframes ${nombre}`).toBeGreaterThanOrEqual(0)
-      const cuerpo = css.slice(i, css.indexOf('\n}', i))
-      for (const [, prop] of cuerpo.matchAll(/^\s*([a-z-]+):/gm)) {
+      const cuerpo = bloqueDeKeyframe(css, nombre)
+      expect(cuerpo, `no existe @keyframes ${nombre}`).not.toBeNull()
+
+      // Cada declaración viene precedida por `{` (la primera de un
+      // sub-bloque de porcentaje/from/to) o por `;` (las siguientes del
+      // mismo sub-bloque) -- estén o no al principio de línea, que es
+      // justo lo que no se puede asumir mezclando los dos formatos.
+      const propiedades = [...cuerpo.matchAll(/[{;]\s*([a-z-]+)\s*:/g)].map((m) => m[1])
+      expect(propiedades.length, `${nombre}: no se detectó ninguna declaración`).toBeGreaterThan(0)
+      for (const prop of propiedades) {
         expect(PERMITIDAS.has(prop), `${nombre} anima "${prop}"`).toBe(true)
       }
     }
