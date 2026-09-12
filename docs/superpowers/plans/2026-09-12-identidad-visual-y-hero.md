@@ -1473,20 +1473,34 @@ Expected: PASS, 9 tests.
 .corte__relleno { color: var(--apagado); }
 .corte__estrato--madre .corte__relleno { color: var(--vaca); }
 
+/* Los rótulos se leen SOBRE la trama litológica, que es un patrón de líneas o
+   puntos: sin separarlos del fondo, el texto compite con la trama y no se lee.
+   `paint-order: stroke` pinta primero un contorno del color del papel y después
+   el relleno, así que cada letra queda con su propio halo. Es la técnica
+   estándar en SVG para texto sobre textura, y cuesta dos propiedades. */
 .corte__rotulo {
   font: 600 13px var(--rotulo);
   letter-spacing: 0.1em;
   fill: var(--apagado);
+  paint-order: stroke;
+  stroke: var(--papel);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
 }
 .corte__estrato--madre .corte__rotulo {
   font: 600 15px var(--serif);
   letter-spacing: 0.02em;
   fill: var(--vaca);
+  stroke-width: 4px;
 }
 .corte__cuenca, .corte__leyenda {
   font: 600 11px var(--rotulo);
   letter-spacing: 0.12em;
   fill: var(--apagado);
+  paint-order: stroke;
+  stroke: var(--papel);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 .corte__marca line { stroke: var(--apagado); stroke-width: 1; }
 .corte__marca text {
@@ -1503,6 +1517,15 @@ Expected: PASS, 9 tests.
   stroke-linecap: round;
 }
 .balancin__contrapeso circle { fill: var(--cobre); stroke: none; }
+
+/* La llama va en `--apagado` y no en `--cobre`: C1 reserva el cobre para el dato
+   —pozos, cifras, el botón de descarga— y prohíbe decorar con él. Tinta la
+   convertiría en un blob negro. `--apagado` es el tono mudo que el resto del
+   dibujo ya usa para lo que no es protagonista. Decidido al mirar el render. */
+.corte__antorcha .antorcha__llama { fill: var(--apagado); stroke: none; }
+.corte__antorcha path { stroke: var(--tinta); stroke-width: 2.4; fill: none; }
+.corte__torre path { stroke: var(--tinta); stroke-width: 2.2; fill: none; }
+.corte__estepa { stroke: var(--apagado); stroke-width: 1.4; fill: none; }
 
 /* Cada pieza rota sobre su propio pivote. `fill-box` hace que
    transform-origin se mida contra la caja del elemento y no del SVG entero:
@@ -1561,6 +1584,14 @@ Expected: PASS, 9 tests.
   animation: corte-fluir calc(var(--periodo, 4s) * 2) linear infinite;
   stroke-dasharray: 6 14;
 }
+/* La antorcha titila en su propio ritmo, ajeno a los balancines: un período que
+   no es múltiplo de ninguno de los tres, así que el conjunto no sincroniza nunca.
+   Es lo que el spec pide en el Acto V. */
+.hero--reposo .corte__antorcha .antorcha__llama {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: antorcha-titilar 1.7s ease-in-out infinite;
+}
 .hero--pausado *, .hero--pausado { animation-play-state: paused !important; }
 
 /* ---------- Acto VI: el relevo ---------- */
@@ -1582,6 +1613,14 @@ Expected: PASS, 9 tests.
 @keyframes balancin-cabecear { 0%, 100% { transform: rotate(-7deg) } 50% { transform: rotate(7deg) } }
 @keyframes balancin-girar { to { transform: rotate(360deg) } }
 @keyframes corte-fluir { to { stroke-dashoffset: -40 } }
+/* Irregular a propósito: una llama que pulsa con un seno perfecto lee como un
+   latido, no como fuego. Los cuatro pasos desparejos rompen la periodicidad. */
+@keyframes antorcha-titilar {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 1 }
+  28%      { transform: scaleY(1.14) scaleX(0.94); opacity: 0.86 }
+  53%      { transform: scaleY(0.93) scaleX(1.05); opacity: 1 }
+  76%      { transform: scaleY(1.07) scaleX(0.97); opacity: 0.92 }
+}
 @keyframes corte-hundirse { to { transform: translateY(28%); opacity: 0 } }
 @keyframes hero-irse { to { opacity: 0; visibility: hidden } }
 
