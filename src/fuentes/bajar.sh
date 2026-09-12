@@ -27,3 +27,18 @@ bajar "Archivo+Narrow"  "400;600" archivo-narrow.woff2
 bajar "JetBrains+Mono"  "400;500" jetbrains-mono.woff2
 
 echo "total: $(du -cb *.woff2 | tail -1 | cut -f1) bytes"
+
+# El aviso de copyright de cada familia (tabla `name`, nameID 0) queda anclado
+# al binario que se distribuye: LICENCIAS.md se compara contra este JSON en
+# fuentes.test.js, no contra texto tipeado a mano. Se regenera con cada bajada.
+python3 -c "
+from fontTools.ttLib import TTFont
+import glob, json
+copyrights = {}
+for f in sorted(glob.glob('*.woff2')):
+    copyrights[f] = TTFont(f)['name'].getDebugName(0)
+with open('copyright.json', 'w') as fh:
+    json.dump(copyrights, fh, ensure_ascii=False, indent=2, sort_keys=True)
+    fh.write('\n')
+print('copyright.json actualizado:', copyrights)
+"

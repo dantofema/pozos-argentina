@@ -26,4 +26,31 @@ describe('tipografías', () => {
     }
     expect(texto).toMatch(/SIL Open Font License/i)
   })
+
+  it('OFL.txt trae la licencia completa, no un resumen', () => {
+    const ofl = readFileSync(ruta('OFL.txt'), 'utf-8')
+    // Marcadores estructurales: una descarga truncada o una paráfrasis no los tiene todos.
+    for (const seccion of ['Version 1.1', 'PREAMBLE', 'DEFINITIONS', 'PERMISSION & CONDITIONS', 'TERMINATION', 'DISCLAIMER']) {
+      expect(ofl, `falta la sección ${seccion}`).toContain(seccion)
+    }
+    expect(ofl.length, 'demasiado corto para ser el texto completo').toBeGreaterThan(3000)
+  })
+
+  it('el aviso de cada tipografía coincide con el archivo que se distribuye', async () => {
+    // Ata el aviso al binario: si alguien cambia un archivo de fuente, este test
+    // falla hasta que actualice el aviso. Sin esto, LICENCIAS.md se desincroniza
+    // en silencio de lo que el sitio realmente sirve.
+    //
+    // No hay librería de fuentes en las dependencias JS del proyecto (G1, presupuesto):
+    // el copyright (tabla `name`, nameID 0) se extrae con fontTools en `bajar.sh`,
+    // que lo escribe a `copyright.json` junto con cada descarga. Este test compara
+    // LICENCIAS.md contra ese JSON —contra lo que salió del binario—, no contra una
+    // constante tipeada a mano.
+    const licencias = readFileSync(ruta('LICENCIAS.md'), 'utf-8')
+    const copyrights = JSON.parse(readFileSync(ruta('copyright.json'), 'utf-8'))
+    expect(Object.keys(copyrights).sort(), 'copyright.json debe cubrir los tres archivos').toEqual([...ARCHIVOS].sort())
+    for (const n of ARCHIVOS) {
+      expect(licencias, `LICENCIAS.md no cita textual el aviso de ${n}`).toContain(copyrights[n])
+    }
+  })
 })
