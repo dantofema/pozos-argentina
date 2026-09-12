@@ -1,10 +1,13 @@
 import { writeFile } from 'node:fs/promises'
 import { paquete, sql } from './lib/ckan.mjs'
 import { PAQUETE_PRODUCCION } from '../src/lib/esquema.js'
-import { candidatosDelPaquete } from './lib/recursos.mjs'
+import { recursosDeProduccion } from './lib/recursos.mjs'
 
+// Sin filtrar los DDJJ a propósito: el fixture es el retrato del catálogo, y es
+// sobre él que los tests prueban que el filtro los deja afuera. Grabarlo ya
+// filtrado vaciaría de contenido esos tests sin que ninguno se ponga en rojo.
 const p = await paquete(PAQUETE_PRODUCCION)
-const candidatos = candidatosDelPaquete(p, 2018, new Date().getFullYear())
+const candidatos = recursosDeProduccion(p, 2018, new Date().getFullYear())
 const conFilas = []
 for (const c of candidatos) {
   try {
@@ -17,5 +20,8 @@ for (const c of candidatos) {
 }
 await writeFile(
   new URL('../tests/fixtures/recursos-candidatos.json', import.meta.url),
-  JSON.stringify(conFilas, null, 2)
+  // La fecha va adentro: las cifras del catálogo cambian —el recurso de 2025
+  // pasó de 90.000 a 991.936 filas entre dos mediciones—, así que un fixture sin
+  // fecha no se puede contrastar contra nada.
+  JSON.stringify({ grabado: new Date().toISOString().slice(0, 10), candidatos: conFilas }, null, 2)
 )

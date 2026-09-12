@@ -17,7 +17,7 @@ export function nombreArchivo(estado) {
 
 /** El BOM hace que Excel abra el archivo como UTF-8 en vez de romper los acentos. */
 export function descargarCsv(texto, nombre) {
-  const blob = new Blob(['﻿' + texto], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['\ufeff' + texto], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

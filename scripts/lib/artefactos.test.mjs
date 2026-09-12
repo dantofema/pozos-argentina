@@ -119,3 +119,51 @@ describe('nombreArchivoCuenca', () => {
     expect(nombreArchivoCuenca('CAÑADON ASFALTO')).toBe('canadon-asfalto')
   })
 })
+
+describe('caja de plausibilidad', () => {
+  // El caso real: id 10143, SJ.RN.LN-7, declarado NEUQUINA, publicado con
+  // lon -38,75 y lat -67,64. Invertido cae en Neuquén; tal como viene, en el
+  // océano Índico.
+  const transpuesto = {
+    ...pozos[0],
+    idpozo: '10143', sigla: 'SJ.RN.LN-7', cuenca: 'NEUQUINA',
+    geojson: '{"type":"Point","coordinates":[-38.75634,-67.64238]}',
+  }
+
+  it('deja fuera del índice al pozo con lon/lat invertidos', () => {
+    const { lite, full } = construirArtefactos([...pozos, transpuesto], agregados)
+
+    expect(lite.rows).toHaveLength(2)
+    expect(lite.rows.map((f) => f[LITE.ID])).not.toContain(10143)
+    expect(full.get('NEUQUINA').rows.map((f) => f[FULL.ID])).not.toContain(10143)
+  })
+
+  it('lo devuelve nombrado, no sólo contado', () => {
+    const { fueraDeCaja } = construirArtefactos([...pozos, transpuesto], agregados)
+
+    expect(fueraDeCaja).toEqual([
+      { idpozo: 10143, sigla: 'SJ.RN.LN-7', lon: -38.75634, lat: -67.64238 },
+    ])
+  })
+
+  it('no lo cuenta como geometría rota: son dos problemas distintos', () => {
+    const { descartados, fueraDeCaja } = construirArtefactos(
+      [...pozos, transpuesto, { ...pozos[0], idpozo: '7', geojson: 'no es json' }],
+      agregados
+    )
+
+    expect(descartados).toBe(1)
+    expect(fueraDeCaja).toHaveLength(1)
+  })
+
+  it('acepta los extremos reales del país: Austral offshore y el norte salteño', () => {
+    const extremos = [
+      { ...pozos[0], idpozo: '1', geojson: '{"type":"Point","coordinates":[-72.11,-54.02]}' },
+      { ...pozos[0], idpozo: '2', geojson: '{"type":"Point","coordinates":[-57.76,-22.00]}' },
+    ]
+    const { lite, fueraDeCaja } = construirArtefactos(extremos, new Map())
+
+    expect(lite.rows).toHaveLength(2)
+    expect(fueraDeCaja).toEqual([])
+  })
+})

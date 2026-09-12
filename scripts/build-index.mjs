@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { writeFile, mkdir } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { sql } from './lib/ckan.mjs'
 import { resolverRecursos } from './lib/recursos.mjs'
 import { sqlPozos, sqlAgregado } from './lib/consultas.mjs'
 import { construirArtefactos, nombreArchivoCuenca } from './lib/artefactos.mjs'
-import { assertMinFilas, assertColumnas } from './lib/guardas.mjs'
+import { assertMinFilas, assertColumnas, assertSinRegresion } from './lib/guardas.mjs'
+import { publicar } from './lib/publicar.mjs'
 import { ANIO_DESDE, FILAS_POR_PAGINA } from '../src/lib/esquema.js'
 
 const SALIDA = new URL('../public/', import.meta.url)
@@ -12,6 +13,15 @@ const MIN_POZOS = 80000
 const MIN_AGREGADOS = 75000
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
+
+/** El manifiesto del build anterior, o null si es la primera corrida. */
+async function manifiestoPrevio() {
+  try {
+    return JSON.parse(await readFile(new URL('manifiesto.json', SALIDA), 'utf-8'))
+  } catch {
+    return null
+  }
+}
 
 async function volcarPozos() {
   const filas = []
@@ -46,8 +56,13 @@ async function main() {
   log(`  ${agregados.size} pozos con producción`)
 
   log('Construyendo artefactos…')
-  const { lite, full, sinProduccion, descartados } = construirArtefactos(pozos, agregados)
+  const { lite, full, sinProduccion, descartados, fueraDeCaja } = construirArtefactos(pozos, agregados)
   log(`  ${lite.rows.length} pozos en el índice, ${sinProduccion} sin producción, ${descartados} descartados`)
+  // Se nombran uno por uno: son coordenadas mentirosas del origen, y el único
+  // modo de reclamarlas -o de notar que se multiplican- es verlas.
+  for (const f of fueraDeCaja) {
+    log(`  fuera de la caja de Argentina, descartado: ${f.idpozo} ${f.sigla} (${f.lon}, ${f.lat})`)
+  }
 
   // Guarda contra los dos filtros silenciosos que corren después de las guardas
   // sobre el volcado crudo: geometría no parseable (construirArtefactos descarta
@@ -57,29 +72,37 @@ async function main() {
   assertMinFilas('pozos en el índice publicado', lite.rows.length, MIN_POZOS)
   assertMinFilas('pozos con producción publicados', lite.rows.length - sinProduccion, MIN_AGREGADOS)
 
-  await mkdir(SALIDA, { recursive: true })
-  await writeFile(new URL('pozos-lite.json', SALIDA), JSON.stringify(lite))
+  const previo = await manifiestoPrevio()
+  if (previo?.generado) {
+    const dias = (Date.now() - Date.parse(previo.generado)) / 86400000
+    log(`  el build anterior fue hace ${dias.toFixed(1)} días`)
+  }
+  assertSinRegresion(previo, { pozos: lite.rows.length, sinProduccion })
 
+  const ultimoPeriodo = agregadosCrudos.reduce((m, a) => Math.max(m, Number(a.ult)), 0)
+
+  // Se arma el lote entero en memoria y se publica de una: nada toca `public/`
+  // hasta que todas las guardas pasaron y todo el JSON está serializado.
+  const archivos = [['pozos-lite.json', JSON.stringify(lite)]]
   const cuencas = []
   for (const [cuenca, datos] of full) {
     const archivo = `pozos-full-${nombreArchivoCuenca(cuenca)}.json`
-    await writeFile(new URL(archivo, SALIDA), JSON.stringify(datos))
+    archivos.push([archivo, JSON.stringify(datos)])
     cuencas.push({ cuenca, archivo, pozos: datos.rows.length })
   }
+  archivos.push(['manifiesto.json', JSON.stringify({
+    generado: new Date().toISOString(),
+    pozos: lite.rows.length,
+    sinProduccion,
+    descartados,
+    fueraDeCaja,
+    ultimoPeriodo,
+    recursos: recursos.map(({ anio, id, nombre, filas }) => ({ anio, id, nombre, filas })),
+    cuencas,
+  }, null, 2)])
 
-  const ultimoPeriodo = agregadosCrudos.reduce((m, a) => Math.max(m, Number(a.ult)), 0)
-  await writeFile(
-    new URL('manifiesto.json', SALIDA),
-    JSON.stringify({
-      generado: new Date().toISOString(),
-      pozos: lite.rows.length,
-      sinProduccion,
-      descartados,
-      ultimoPeriodo,
-      recursos: recursos.map(({ anio, id, nombre, filas }) => ({ anio, id, nombre, filas })),
-      cuencas,
-    }, null, 2)
-  )
+  const borrados = await publicar(SALIDA, archivos)
+  if (borrados.length > 0) log(`  huérfanos borrados: ${borrados.join(', ')}`)
 
   log(`Listo. Último período con producción: ${ultimoPeriodo}`)
 }

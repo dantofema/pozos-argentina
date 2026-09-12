@@ -29,6 +29,22 @@ export function nombreArchivoCuenca(cuenca) {
     .replace(/^-|-$/g, '')
 }
 
+/**
+ * Caja de plausibilidad, no un contorno del pais: sirve para descartar puntos
+ * imposibles, no para decidir jurisdicciones. El origen publica algunos pozos
+ * con lon/lat invertidos dentro del propio `geojson` -dos en el volcado del
+ * 2026-09-11-, y un punto invertido cae en el oceano Indico: se dibuja en
+ * cualquier lado, ninguna zona dibujada lo captura y el CSV exporta una
+ * coordenada falsa. Los 85.609 pozos restantes de ese volcado caen en
+ * lon [-72,11; -57,76] y lat [-54,02; -22,00], bien adentro de esta caja.
+ */
+export const CAJA_ARGENTINA = { lonMin: -75, lonMax: -52, latMin: -57, latMax: -20 }
+
+function enCaja([lon, lat]) {
+  return lon >= CAJA_ARGENTINA.lonMin && lon <= CAJA_ARGENTINA.lonMax &&
+    lat >= CAJA_ARGENTINA.latMin && lat <= CAJA_ARGENTINA.latMax
+}
+
 /** Lee las coordenadas del geojson. Devuelve null si no se puede parsear. */
 function coordenadas(geojson) {
   try {
@@ -54,11 +70,21 @@ export function construirArtefactos(pozos, agregados) {
   const full = new Map()
   let sinProduccion = 0
   let descartados = 0
+  // Se listan enteros, no se cuentan: son pocos y el build los nombra para que
+  // se pueda reclamar al origen pozo por pozo.
+  const fueraDeCaja = []
 
   for (const p of pozos) {
     const c = coordenadas(p.geojson)
     if (!c) {
       descartados++
+      continue
+    }
+    // Se descarta, no se corrige: invertir lon/lat por nuestra cuenta seria
+    // publicar una coordenada que el origen nunca dijo. Un pozo sin ubicacion
+    // confiable no entra al indice.
+    if (!enCaja(c)) {
+      fueraDeCaja.push({ idpozo: Number(p.idpozo), sigla: p.sigla ?? '', lon: c[0], lat: c[1] })
       continue
     }
 
@@ -92,5 +118,5 @@ export function construirArtefactos(pozos, agregados) {
     full.get(cuenca).rows.push(fila)
   }
 
-  return { lite: { dicts, rows: lite }, full, sinProduccion, descartados }
+  return { lite: { dicts, rows: lite }, full, sinProduccion, descartados, fueraDeCaja }
 }

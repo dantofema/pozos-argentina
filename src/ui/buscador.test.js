@@ -229,3 +229,60 @@ describe('reflejar el ámbito vigente', () => {
     expect(contenedor.querySelectorAll('.buscador__opcion')).toHaveLength(0)
   })
 })
+
+describe('la lista de sugerencias', () => {
+  const lista = () => contenedor.querySelector('.buscador__resultados')
+
+  it('se esconde cuando no hay resultados, en vez de dejar un recuadro vacío', () => {
+    crearBuscador(contenedor, facetas, () => {})
+
+    expect(escribir('tordillo')).toHaveLength(2)
+    expect(lista().hidden).toBe(false)
+
+    expect(escribir('no existe ningun pozo asi')).toHaveLength(0)
+    expect(lista().hidden).toBe(true)
+  })
+
+  it('deja el foco en el campo al elegir, no en el body', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    const entrada = contenedor.querySelector('.buscador__entrada')
+
+    const opcion = escribir('ypf')[0]
+    opcion.focus()
+    opcion.click()
+
+    // cerrarLista saca del DOM el botón que tenía el foco.
+    expect(document.activeElement).toBe(entrada)
+  })
+
+  it('se cierra con Escape', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('tordillo')
+
+    contenedor.querySelector('.buscador__entrada')
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
+    expect(lista().hidden).toBe(true)
+  })
+
+  it('se cierra al hacer click afuera', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('tordillo')
+
+    const afuera = document.createElement('button')
+    document.body.appendChild(afuera)
+    afuera.click()
+
+    expect(lista().hidden).toBe(true)
+    afuera.remove()
+  })
+
+  it('no se cierra al hacer click adentro del propio buscador', () => {
+    crearBuscador(contenedor, facetas, () => {})
+    escribir('tordillo')
+
+    contenedor.querySelector('.buscador__entrada').click()
+
+    expect(lista().hidden).toBe(false)
+  })
+})

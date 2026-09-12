@@ -5,3 +5,4 @@ scripts/.cache/
 *.log
 .DS_Store
 public/
+coverage/

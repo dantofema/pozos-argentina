@@ -51,7 +51,14 @@ export async function existeRecurso(id) {
   try {
     await sql(`SELECT 1 FROM "${id}" LIMIT 1`, { reintentos: 1, timeoutMs: 30000 })
     return true
-  } catch {
+  } catch (error) {
+    // Un recurso que de verdad no existe y un timeout de red terminaban los dos
+    // acá, callados, y el año entero desaparecía del build sin explicación. El
+    // build igual corta después -`resolverRecursos` exige un recurso por año-,
+    // pero el mensaje tiene que decir por qué faltó.
+    if (!/relation .* does not exist|undefined_table/i.test(error.message ?? '')) {
+      console.warn(`  recurso ${id}: no se pudo verificar (${error.message}); se lo saltea`)
+    }
     return false
   }
 }

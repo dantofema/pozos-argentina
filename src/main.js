@@ -4,7 +4,7 @@ import { porFaceta, porPoligono, cuencasDe } from './lib/ambito.js'
 import { cargarDetalle } from './lib/detalle.js'
 import { construirCsv } from './lib/csv.js'
 import { leerEstado, escribirEstado } from './lib/url.js'
-import { ETIQUETA_TIPO } from './lib/esquema.js'
+import { periodoLegible, filasDelAmbito } from './lib/resumen.js'
 import { crearMapa } from './ui/mapa.js'
 import { crearBuscador } from './ui/buscador.js'
 import { crearHerramientas } from './ui/herramientas.js'
@@ -31,9 +31,6 @@ app.innerHTML = `
     </aside>
   </div>`
 
-/** 202607 -> "07/2026" */
-const periodoLegible = (p) => `${String(p).slice(4)}/${String(p).slice(0, 4)}`
-
 // Todo lo que sigue depende de que el catálogo haya cargado. Si `cargarCatalogo`
 // rechaza (fetch caído, JSON roto), el catch deja un mensaje visible en el pie
 // en vez de una página con el buscador, la descarga y el mapa vacíos y sin
@@ -51,21 +48,14 @@ try {
     `datos generados el ${m.generado.slice(0, 10)}. ` +
     'Sitio no oficial: no representa a la Secretaría de Energía.'
 
-  /** Los datos del ámbito, etiquetados, uno por fila. */
-  function filasDelAmbito(estado, cantidad) {
-    const filas = [{ etiqueta: 'Pozos', valor: cantidad.toLocaleString('es-AR') }]
-    if (estado.modo === 'faceta') {
-      filas.push({ etiqueta: 'Tipo', valor: ETIQUETA_TIPO[estado.tipo] ?? estado.tipo })
-      filas.push({ etiqueta: 'Nombre', valor: estado.valor })
-      if (estado.cuenca) filas.push({ etiqueta: 'Cuenca', valor: estado.cuenca })
-    } else if (estado.modo === 'poligono') {
-      filas.push({ etiqueta: 'Ámbito', valor: 'Zona dibujada en el mapa' })
-    }
-    filas.push({ etiqueta: 'Producción hasta', valor: periodoLegible(m.ultimoPeriodo) })
-    return filas
-  }
-
-  async function aplicar(estado, { empujarHistorial = true } = {}) {
+  /**
+   * Punto único de sincronización. `aplicar` la envuelve para contener los
+   * errores: se la llama desde callbacks del buscador, del mapa y de popstate,
+   * que corren fuera del `try` de arranque, así que una excepción acá sería un
+   * rechazo sin manejar y dejaría mapa, buscador, URL y panel desincronizados
+   * sin ninguna señal.
+   */
+  async function sincronizar(estado, { empujarHistorial = true } = {}) {
     // La zona dibujada se queda en el mapa mientras sea el ámbito elegido, y se
     // va apenas el ámbito pasa a ser otra cosa.
     if (estado.modo === 'poligono') mapa.mostrarZona(estado.poligono)
@@ -105,7 +95,7 @@ try {
     else mapa.encuadrar(filasLite)
 
     panel.mostrar({
-      filas: filasDelAmbito(estado, ids.length),
+      filas: filasDelAmbito(estado, ids.length, m.ultimoPeriodo),
       alDescargar: async () => {
         const detalle = await cargarDetalle(cuencasDe(catalogo, ids))
         const filas = ids.map((id) => detalle.get(id)).filter(Boolean)
@@ -113,6 +103,15 @@ try {
         descargarCsv(csv, nombreArchivo(estado))
       },
     })
+  }
+
+  async function aplicar(estado, opciones) {
+    try {
+      await sincronizar(estado, opciones)
+    } catch (error) {
+      console.error('No se pudo aplicar la selección:', error)
+      panel.mostrarVacio('No se pudo mostrar esa selección. Probá con otra o recargá la página.')
+    }
   }
 
   const buscador = crearBuscador(document.querySelector('#buscador'), facetas, (faceta) => {

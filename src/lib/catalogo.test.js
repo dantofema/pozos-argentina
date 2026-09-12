@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { construirFacetas, buscar, normalizar } from './catalogo.js'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { construirFacetas, buscar, normalizar, cargarCatalogo } from './catalogo.js'
 import { LITE } from './esquema.js'
 
 const catalogo = {
@@ -120,5 +120,50 @@ describe('construirFacetas con nombres homónimos', () => {
   it('un yacimiento que vive en una sola cuenca igual lleva su cuenca', () => {
     const f = construirFacetas(catalogo).filter((x) => x.tipo === 'yacimiento')
     expect(f.every((x) => typeof x.cuenca === 'string')).toBe(true)
+  })
+})
+
+describe('cargarCatalogo', () => {
+  const LITE_OK = { dicts: { cuenca: ['NEUQUINA'] }, rows: [[7, -68.6, -38.3, 0, 0, 0, 0, 0]] }
+  const MANIFIESTO_OK = { pozos: 1, ultimoPeriodo: 202607, generado: '2026-09-11T00:00:00.000Z' }
+
+  function responder(porArchivo) {
+    globalThis.fetch = vi.fn(async (url) => {
+      const respuesta = Object.entries(porArchivo).find(([nombre]) => String(url).endsWith(nombre))
+      if (!respuesta) return { ok: false, status: 404, statusText: 'Not Found' }
+      return { ok: true, status: 200, json: async () => respuesta[1] }
+    })
+  }
+
+  afterEach(() => { vi.unstubAllGlobals(); delete globalThis.fetch })
+
+  it('indexa las filas por id para no recorrer 85.000 en cada consulta', async () => {
+    responder({ 'pozos-lite.json': LITE_OK, 'manifiesto.json': MANIFIESTO_OK })
+
+    const catalogo = await cargarCatalogo('/')
+
+    expect(catalogo.porId.get(7)).toBe(catalogo.rows[0])
+    expect(catalogo.manifiesto.ultimoPeriodo).toBe(202607)
+  })
+
+  it('pide los dos archivos en paralelo, no uno después del otro', async () => {
+    responder({ 'pozos-lite.json': LITE_OK, 'manifiesto.json': MANIFIESTO_OK })
+
+    await cargarCatalogo('/')
+
+    // Las dos llamadas salen antes de que ninguna respuesta se haya resuelto.
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('dice qué archivo faltó en vez de un error de sintaxis del index.html', async () => {
+    responder({ 'manifiesto.json': MANIFIESTO_OK })
+
+    await expect(cargarCatalogo('/')).rejects.toThrow(/pozos-lite\.json: 404/)
+  })
+
+  it('rechaza un índice sin la forma esperada, y no más adentro', async () => {
+    responder({ 'pozos-lite.json': { dicts: {} }, 'manifiesto.json': MANIFIESTO_OK })
+
+    await expect(cargarCatalogo('/')).rejects.toThrow(/no tiene la forma esperada/)
   })
 })

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest'
-import { nombreArchivo, crearPanelDescarga } from './descarga.js'
+import { nombreArchivo, crearPanelDescarga, descargarCsv } from './descarga.js'
 
 describe('nombreArchivo', () => {
   it('usa el valor de la faceta, normalizado', () => {
@@ -183,5 +183,41 @@ describe('panel con datos etiquetados', () => {
     })
     expect(contenedor.querySelector('img')).toBeNull()
     expect(valores(contenedor)).toEqual(['<img src=x onerror=alert(1)>'])
+  })
+})
+
+describe('descargarCsv', () => {
+  function espiar() {
+    const blobs = []
+    const revocadas = []
+    globalThis.URL.createObjectURL = vi.fn((blob) => {
+      blobs.push(blob)
+      return 'blob:falso'
+    })
+    globalThis.URL.revokeObjectURL = vi.fn((url) => revocadas.push(url))
+    return { blobs, revocadas }
+  }
+
+  it('antepone el BOM para que Excel no rompa los acentos', async () => {
+    const { blobs } = espiar()
+
+    descargarCsv('sigla,cuenca\nPBE.Nq.M-1,NEUQUINA', 'pozos.csv')
+
+    // Se miran los bytes y no `blob.text()`: decodificar UTF-8 se come el BOM,
+    // así que por texto el test pasaría igual sin BOM, que es justo lo que
+    // rompe a Excel.
+    const bytes = new Uint8Array(await blobs[0].arrayBuffer())
+    expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf])
+    expect(blobs[0].type).toBe('text/csv;charset=utf-8;')
+  })
+
+  it('no deja el ancla ni la URL colgando', () => {
+    const { revocadas } = espiar()
+    const anclasAntes = document.querySelectorAll('a').length
+
+    descargarCsv('a,b', 'pozos-zona.csv')
+
+    expect(document.querySelectorAll('a')).toHaveLength(anclasAntes)
+    expect(revocadas).toEqual(['blob:falso'])
   })
 })

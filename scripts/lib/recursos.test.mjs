@@ -10,9 +10,12 @@ vi.mock('./ckan.mjs', () => ({
 import { candidatosDelPaquete, elegirPorAnio, resolverRecursos } from './recursos.mjs'
 import { paquete, sql, existeRecurso } from './ckan.mjs'
 
-const candidatos = JSON.parse(
+const fixture = JSON.parse(
   await readFile(new URL('../../tests/fixtures/recursos-candidatos.json', import.meta.url))
 )
+// Retrato del catálogo del 2026-09-10, DDJJ incluidos. Las cifras son de esa
+// fecha: el origen republica recursos y los conteos se mueven.
+const candidatos = fixture.candidatos
 
 describe('elegirPorAnio', () => {
   it('elige el recurso con más filas cuando hay duplicados del mismo año', () => {
@@ -59,6 +62,36 @@ describe('elegirPorAnio', () => {
     expect(elegido2026.id).not.toBe(ddjj2026.id)
     expect(elegido2026.filas).toBeLessThan(ddjj2026.filas)
     expect(elegido2026.nombre).not.toMatch(/DDJJ/i)
+  })
+
+  it('para 2020 —un año cerrado— también descarta el DDJJ con más filas', () => {
+    // El de 2026 solo prueba el año en curso. Sin este, angostar el filtro a
+    // `anio === anioHasta` deja verde toda la suite y corrompe en silencio la
+    // serie histórica: 2020 cerrado tiene un DDJJ de 954.001 filas contra
+    // 953.660 del principal, apenas 341 más, y ganaría por cantidad.
+    const paqueteFixture = {
+      resources: candidatos.map((c) => ({ id: c.id, name: c.nombre, datastore_active: true })),
+    }
+    const conFilas = candidatosDelPaquete(paqueteFixture, 2018, 2026).map((c) => ({
+      ...c,
+      filas: candidatos.find((x) => x.id === c.id).filas,
+    }))
+    const elegido2020 = elegirPorAnio(conFilas).get(2020)
+    const ddjj2020 = candidatos.find((c) => c.anio === 2020 && /DDJJ/i.test(c.nombre))
+
+    expect(ddjj2020).toBeDefined()
+    expect(ddjj2020.filas).toBeGreaterThan(elegido2020.filas)
+    expect(elegido2020.nombre).not.toMatch(/DDJJ/i)
+    expect(elegido2020.id).not.toBe(ddjj2020.id)
+  })
+
+  it('el fixture trae DDJJ: sin ellos los dos tests de arriba no probarían nada', () => {
+    // Guarda contra el modo silencioso de romperlos: regrabar el fixture ya
+    // filtrado los dejaría verdes y vacíos. Por eso `grabar-fixture-recursos.mjs`
+    // usa `recursosDeProduccion` y no `candidatosDelPaquete`.
+    const ddjj = candidatos.filter((c) => /DDJJ/i.test(c.nombre))
+    expect(ddjj.length).toBeGreaterThan(0)
+    expect(new Set(ddjj.map((c) => c.anio)).size).toBeGreaterThan(1)
   })
 
   it('elige el recurso con filas por sobre el que tiene cero', () => {

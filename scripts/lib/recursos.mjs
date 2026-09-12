@@ -6,18 +6,15 @@ import { PAQUETE_PRODUCCION } from '../../src/lib/esquema.js'
 const MIN_FILAS_ANIO = 200000
 
 /**
- * Extrae del paquete los recursos de producción anual dentro del rango.
- * Deja afuera la tabla de pozos y cualquier recurso fuera del datastore.
+ * Todos los recursos de producción anual del paquete dentro del rango, DDJJ
+ * incluidos. Deja afuera la tabla de pozos y cualquier recurso fuera del
+ * datastore. Es lo que graba el fixture: un retrato del catálogo tal como es,
+ * para que los tests puedan ejercitar el filtro sobre datos reales.
  */
-export function candidatosDelPaquete(p, anioDesde, anioHasta) {
+export function recursosDeProduccion(p, anioDesde, anioHasta) {
   return (p.resources ?? [])
     .filter((r) => r.datastore_active)
     .filter((r) => /producc/i.test(r.name ?? ''))
-    // Los "(DDJJ abiertas y cerradas)" son un conjunto distinto: incluyen
-    // declaraciones juradas todavía abiertas. Sólo en el año en curso superan
-    // en filas al recurso principal (cerradas nomás); mezclarlos rompe la
-    // comparabilidad de la serie histórica.
-    .filter((r) => !/DDJJ/i.test(r.name ?? ''))
     .map((r) => {
       const encontrado = /(20\d\d)/.exec(r.name ?? '')
       return encontrado
@@ -25,6 +22,19 @@ export function candidatosDelPaquete(p, anioDesde, anioHasta) {
         : null
     })
     .filter((c) => c && c.anio >= anioDesde && c.anio <= anioHasta)
+}
+
+/**
+ * Los candidatos que el build usa de verdad. Los "(DDJJ abiertas y cerradas)"
+ * son un conjunto distinto: incluyen declaraciones juradas todavía abiertas.
+ * Mezclarlos rompe la comparabilidad de la serie histórica, y como `elegirPorAnio`
+ * decide por cantidad de filas, un DDJJ le gana al principal apenas tiene una
+ * fila más —pasa en el año en curso y también en años cerrados: 2020 midió
+ * 954.001 contra 953.660—. El filtro no depende del año.
+ */
+export function candidatosDelPaquete(p, anioDesde, anioHasta) {
+  return recursosDeProduccion(p, anioDesde, anioHasta)
+    .filter((c) => !/DDJJ/i.test(c.nombre ?? ''))
 }
 
 /**

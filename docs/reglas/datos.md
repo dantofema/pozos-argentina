@@ -8,6 +8,17 @@ Las columnas `coordenadax` y `coordenaday` de la tabla de producción **están
 transpuestas**: guardan la latitud en `coordenadax` y la longitud en `coordenaday`.
 Se verificó sobre 5.089 pozos: 5.088 están invertidos. No se usan nunca.
 
+`geojson` es la mejor geometría que publica el origen, no una geometría confiable:
+**la misma transposición aparece adentro del propio `geojson`**, en unos pocos pozos.
+En el volcado del 2026-09-11 eran 2 de 85.611 —`10143 SJ.RN.LN-7` y
+`162058 PBE.Nq.M-1063(d)`, ambos declarados en cuencas argentinas y publicados con
+un punto que cae en el océano Índico—. Por eso `coordenadas()` pasa cada punto por
+una caja de plausibilidad (`CAJA_ARGENTINA` en `scripts/lib/artefactos.mjs`) y
+**descarta** el que queda afuera: no lo corrige. Invertir lon/lat por nuestra cuenta
+sería publicar una coordenada que el origen nunca dijo, y no hay forma de distinguir
+una transposición de un dato simplemente mal cargado. El build los nombra uno por uno
+en el log y los deja listados en `fueraDeCaja` del manifiesto.
+
 ## D2 — Un pozo sin producción no se oculta
 
 La fusión entre pozos y producción es un `LEFT JOIN`: por cada pozo del volcado se busca su
@@ -42,10 +53,23 @@ busca o descarga.
 ## D4 — El build falla antes que publicar datos incompletos
 
 El paquete de producción tiene 44 recursos con duplicados. Dos se llaman casi igual y se
-distinguen por un guión: uno trae 90.000 filas y el otro 991.844.
+distinguen por un guión: medido el 2026-09-10, uno traía 90.000 filas y el otro 991.844.
+Esas cifras son un retrato, no una constante: el origen republica recursos y los conteos
+se mueven —el mismo recurso medía 991.936 filas el 2026-09-11—. El retrato fechado vive
+en `tests/fixtures/recursos-candidatos.json`; lo que no cambia es la heurística, que se
+queda con el que más filas tiene.
 
 Ante cualquier duda —un año faltante, un volcado por debajo del piso, una tabla que no
-existe— el build aborta con código distinto de cero.
+existe, un índice que perdió pozos o un salto de los que no declaran producción— el build
+aborta con código distinto de cero.
+
+La publicación es atómica por archivo: todo el lote se escribe con sufijo `.parcial` y
+recién cuando está completo se renombra a su nombre final (`scripts/lib/publicar.mjs`).
+Sin eso, un build que muere a mitad de camino dejaba `pozos-lite.json` truncado y el sitio
+roto hasta la próxima corrida. En la misma pasada se borran las particiones de cuencas que
+ya no están en el manifiesto: sus índices apuntan a los diccionarios de `pozos-lite.json`,
+que se reconstruyen desde cero en cada build, así que una partición vieja no daría un 404
+sino nombres de empresa y yacimiento equivocados, en silencio.
 
 ## D5 — Los recursos `(DDJJ abiertas y cerradas)` quedan afuera
 

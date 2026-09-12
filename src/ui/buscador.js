@@ -71,9 +71,12 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   }
 
   function pintar() {
-    lista.hidden = false
     lista.innerHTML = ''
-    for (const r of resultados(entrada.value)) {
+    const encontrados = resultados(entrada.value)
+    // Sin resultados la lista se esconde: dejarla abierta y vacía deja un
+    // recuadro flotando sobre el mapa que no dice nada.
+    lista.hidden = encontrados.length === 0
+    for (const r of encontrados) {
       const li = document.createElement('li')
       const boton = document.createElement('button')
       boton.type = 'button'
@@ -92,6 +95,9 @@ export function crearBuscador(contenedor, facetas, alElegir) {
         entrada.value = r.cuenca ? `${r.valor} (${r.cuenca})` : r.valor
         botonLimpiar.hidden = false
         cerrarLista()
+        // cerrarLista saca del DOM el botón que tiene el foco, y el foco se
+        // caería al body: quien navega con teclado perdería el lugar.
+        entrada.focus()
         alElegir(r)
       }
       li.appendChild(boton)
@@ -119,6 +125,15 @@ export function crearBuscador(contenedor, facetas, alElegir) {
   botonLimpiar.addEventListener('click', () => {
     limpiarTodo()
     entrada.focus()
+  })
+
+  // Escape y un click afuera cierran las sugerencias, que si no quedan flotando
+  // sobre el mapa hasta que se elija algo.
+  entrada.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { cerrarLista(); e.stopPropagation() }
+  })
+  document.addEventListener('click', (e) => {
+    if (!contenedor.contains(e.target)) cerrarLista()
   })
 
   return {

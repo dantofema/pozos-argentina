@@ -1,92 +1,95 @@
-[
-  {
-    "anio": 2026,
-    "id": "fb7a47a0-cba9-4667-a004-6f6c1c346c23",
-    "nombre": "Producción de Pozos de Gas y Petróleo – 2026",
-    "filas": 561000
-  },
-  {
-    "anio": 2025,
-    "id": "d774b5d7-0756-48fe-88f2-8729b57b22da",
-    "nombre": "Producción de Pozos de Gas y Petróleo – 2025",
-    "filas": 991844
-  },
-  {
-    "anio": 2025,
-    "id": "6f9f63bd-3f7e-43ab-8743-85997ae1380c",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2025",
-    "filas": 90000
-  },
-  {
-    "anio": 2024,
-    "id": "43a09dce-1742-44d0-bc13-f193deaab563",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2024",
-    "filas": 983551
-  },
-  {
-    "anio": 2024,
-    "id": "94d82d18-488b-434c-806d-ee5e053ce1cd",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2024",
-    "filas": 983551
-  },
-  {
-    "anio": 2023,
-    "id": "231c39b3-e81e-4398-af8d-b115807f2c25",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2023",
-    "filas": 974971
-  },
-  {
-    "anio": 2022,
-    "id": "876b3746-85e2-4039-adeb-b1354436159f",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2022",
-    "filas": 972394
-  },
-  {
-    "anio": 2021,
-    "id": "465be754-a372-4c31-b855-81dc5fe3309f",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2021",
-    "filas": 961451
-  },
-  {
-    "anio": 2020,
-    "id": "c4a4a6a0-e75a-4e12-ae5c-54d53a70348c",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2020",
-    "filas": 953660
-  },
-  {
-    "anio": 2019,
-    "id": "8bc0d61c-0408-43d4-a7bc-7178fcb5d37e",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2019",
-    "filas": 944516
-  },
-  {
-    "anio": 2018,
-    "id": "333fd72a-9b83-4bc1-bc94-0f5940b52331",
-    "nombre": "Producción de Pozos de Gas y Petróleo 2018",
-    "filas": 932835
-  },
-  {
-    "anio": 2019,
-    "id": "d7dd85a5-4268-43b3-9ce5-c713cbbec2dc",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2019 (DDJJ abiertas y cerradas)",
-    "filas": 463000
-  },
-  {
-    "anio": 2020,
-    "id": "508ce39a-00d0-4164-a997-7ad25dda1c1a",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2020 (DDJJ abiertas y cerradas)",
-    "filas": 954001
-  },
-  {
-    "anio": 2023,
-    "id": "4b31fa79-dc2d-4228-a6ac-7e804cb36d1d",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2023 (DDJJ abiertas y cerradas)",
-    "filas": 225574
-  },
-  {
-    "anio": 2026,
-    "id": "85d6e021-a00d-4997-b74e-0b9b43c547fe",
-    "nombre": "Producción de Pozos de Gas y Petróleo - 2026 (DDJJ abiertas y cerradas)",
-    "filas": 576934
-  }
-]
+{
+  "grabado": "2026-09-10",
+  "candidatos": [
+    {
+      "anio": 2026,
+      "id": "fb7a47a0-cba9-4667-a004-6f6c1c346c23",
+      "nombre": "Producción de Pozos de Gas y Petróleo – 2026",
+      "filas": 561000
+    },
+    {
+      "anio": 2025,
+      "id": "d774b5d7-0756-48fe-88f2-8729b57b22da",
+      "nombre": "Producción de Pozos de Gas y Petróleo – 2025",
+      "filas": 991844
+    },
+    {
+      "anio": 2025,
+      "id": "6f9f63bd-3f7e-43ab-8743-85997ae1380c",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2025",
+      "filas": 90000
+    },
+    {
+      "anio": 2024,
+      "id": "43a09dce-1742-44d0-bc13-f193deaab563",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2024",
+      "filas": 983551
+    },
+    {
+      "anio": 2024,
+      "id": "94d82d18-488b-434c-806d-ee5e053ce1cd",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2024",
+      "filas": 983551
+    },
+    {
+      "anio": 2023,
+      "id": "231c39b3-e81e-4398-af8d-b115807f2c25",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2023",
+      "filas": 974971
+    },
+    {
+      "anio": 2022,
+      "id": "876b3746-85e2-4039-adeb-b1354436159f",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2022",
+      "filas": 972394
+    },
+    {
+      "anio": 2021,
+      "id": "465be754-a372-4c31-b855-81dc5fe3309f",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2021",
+      "filas": 961451
+    },
+    {
+      "anio": 2020,
+      "id": "c4a4a6a0-e75a-4e12-ae5c-54d53a70348c",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2020",
+      "filas": 953660
+    },
+    {
+      "anio": 2019,
+      "id": "8bc0d61c-0408-43d4-a7bc-7178fcb5d37e",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2019",
+      "filas": 944516
+    },
+    {
+      "anio": 2018,
+      "id": "333fd72a-9b83-4bc1-bc94-0f5940b52331",
+      "nombre": "Producción de Pozos de Gas y Petróleo 2018",
+      "filas": 932835
+    },
+    {
+      "anio": 2019,
+      "id": "d7dd85a5-4268-43b3-9ce5-c713cbbec2dc",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2019 (DDJJ abiertas y cerradas)",
+      "filas": 463000
+    },
+    {
+      "anio": 2020,
+      "id": "508ce39a-00d0-4164-a997-7ad25dda1c1a",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2020 (DDJJ abiertas y cerradas)",
+      "filas": 954001
+    },
+    {
+      "anio": 2023,
+      "id": "4b31fa79-dc2d-4228-a6ac-7e804cb36d1d",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2023 (DDJJ abiertas y cerradas)",
+      "filas": 225574
+    },
+    {
+      "anio": 2026,
+      "id": "85d6e021-a00d-4997-b74e-0b9b43c547fe",
+      "nombre": "Producción de Pozos de Gas y Petróleo - 2026 (DDJJ abiertas y cerradas)",
+      "filas": 576934
+    }
+  ]
+}

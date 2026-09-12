@@ -23,12 +23,28 @@ export function normalizar(texto) {
     .trim()
 }
 
+/**
+ * Un host que responde los 404 con el index.html del sitio haría fallar a
+ * `r.json()` con un error de sintaxis que no nombra el archivo. Mirar `r.ok`
+ * primero convierte eso en un mensaje que dice qué faltó.
+ */
+async function pedirJson(url) {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`No se pudo cargar ${url}: ${r.status} ${r.statusText}`)
+  return r.json()
+}
+
 /** Carga el índice y el manifiesto que dejó el build. */
 export async function cargarCatalogo(base = import.meta.env.BASE_URL) {
   const [lite, manifiesto] = await Promise.all([
-    fetch(`${base}pozos-lite.json`).then((r) => r.json()),
-    fetch(`${base}manifiesto.json`).then((r) => r.json()),
+    pedirJson(`${base}pozos-lite.json`),
+    pedirJson(`${base}manifiesto.json`),
   ])
+  // Sin esto, un índice a medio generar explota más adentro con un TypeError
+  // que no dice qué archivo estaba mal.
+  if (!lite || !Array.isArray(lite.rows) || !lite.dicts) {
+    throw new Error('pozos-lite.json no tiene la forma esperada (rows + dicts)')
+  }
   const porId = new Map(lite.rows.map((f) => [f[LITE.ID], f]))
   return { dicts: lite.dicts, rows: lite.rows, manifiesto, porId }
 }
