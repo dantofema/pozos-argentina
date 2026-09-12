@@ -24,6 +24,16 @@ const TORRE_X = 1030
  * tercer balancín, lejos de la torre y de los tres balancines. */
 const ANTORCHA_X = 680
 
+/**
+ * El punto del borde exterior de la cabeza de caballo del que cuelga el
+ * cable (coordenada local del balancín, sin escalar). Es la única fuente de
+ * verdad para dos dibujos que tienen que coincidir: acá mismo, para trazar
+ * el cable, y en `pozosDibujados`, para plantar la boca del pozo justo
+ * debajo. Sin este acople el cable cuelga de la cabeza pero el pozo queda
+ * en otro lado, y los dos dibujos dejan de tener relación mecánica.
+ */
+const CABEZA_CABLE_X = 57
+
 const miles = (n) => n.toLocaleString('es-AR')
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -114,8 +124,16 @@ function unaAntorcha(x) {
  * movimiento real entre las dos animaciones es un problema de la Tarea 6, no
  * de este dibujo).
  *
- * Viga y contrapeso siguen siendo hijos propios del `<g>` del balancín, cada
- * uno con su pivote, para poder animarse acoplados y no en bloque.
+ * La cabeza es una placa maciza —un sector circular, apoyado en la punta de
+ * la viga con el borde curvo mirando hacia abajo y hacia afuera— y no un
+ * trazo abierto: a este tamaño lo que la hace reconocible es la masa del
+ * contorno, no el detalle, y un extremo suelto lee como rizo ornamental, no
+ * como pieza. Del borde curvo cuelga el cable (`balancin__cable`), vertical,
+ * hasta la boca del pozo: es lo que conecta la máquina con lo que perfora.
+ *
+ * Cabeza y cable viven dentro de `balancin__viga` a propósito: cuando la
+ * Tarea 6 haga cabecear la viga, tienen que acompañarla. Afuera del grupo
+ * quedarían quietos mientras la viga se mueve.
  */
 function unBalancin({ x, escala, periodo }, i) {
   const base = GEOMETRIA.HORIZONTE
@@ -125,8 +143,8 @@ function unBalancin({ x, escala, periodo }, i) {
       <path class="balancin__torre" d="M-16 0l16-58 16 58" />
       <g class="balancin__viga">
         <path d="M-52 -58h104" />
-        <path class="balancin__cabeza"
-              d="M52 -58C56 -74 70 -84 88 -82C106 -80 118 -66 112 -50C108 -40 94 -38 88 -48" />
+        <path class="balancin__cabeza" d="M36 -58L66 -58A30 30 0 0 1 36 -28Z" />
+        <line class="balancin__cable" x1="${CABEZA_CABLE_X}" y1="-37" x2="${CABEZA_CABLE_X}" y2="0" />
       </g>
       <path class="balancin__biela" d="M-52 -58 -40 -18" />
       <g class="balancin__contrapeso" transform="translate(-36 -8)">
@@ -160,13 +178,20 @@ export function construirCorte({ formaciones, pozos, periodo }) {
       </g>`
   }).join('')
 
-  const pozosDibujados = BALANCINES.map(({ x }, i) => `
+  // La boca de cada pozo va bajo el cable de su balancín, no bajo el poste:
+  // es del borde de la cabeza de donde cuelga el cable que baja hasta acá
+  // (CABEZA_CABLE_X, la misma constante que dibuja el cable en `unBalancin`),
+  // y es esa coincidencia la que explica el mecanismo en el dibujo.
+  const pozosDibujados = BALANCINES.map(({ x, escala }, i) => {
+    const xPozo = Math.round(x + CABEZA_CABLE_X * escala)
+    return `
       <g class="corte__pozo">
-        <line class="corte__casing" x1="${x}" y1="${HORIZONTE}" x2="${x}" y2="${profundidadLateral}" />
+        <line class="corte__casing" x1="${xPozo}" y1="${HORIZONTE}" x2="${xPozo}" y2="${profundidadLateral}" />
         <line class="corte__lateral" data-profundidad="${profundidadLateral}"
-              x1="${x}" y1="${profundidadLateral}"
-              x2="${x + (i % 2 === 0 ? 230 : -230)}" y2="${profundidadLateral}" />
-      </g>`).join('')
+              x1="${xPozo}" y1="${profundidadLateral}"
+              x2="${xPozo + (i % 2 === 0 ? 230 : -230)}" y2="${profundidadLateral}" />
+      </g>`
+  }).join('')
 
   // Las marcas viven en su propio canal, pegado al margen izquierdo
   // (x=0..~60): el rótulo de cada banda arranca en x=74 (arriba) para que

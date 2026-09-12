@@ -205,4 +205,52 @@ describe('construirCorte', () => {
       expect(Math.abs(Number(ty)), 'el contrapeso quedó cerca de la punta de la viga').toBeLessThan(29)
     }
   })
+
+  // --- Segunda ronda de arreglos: la cabeza leía como espiral, no como pieza ---
+
+  it('la cabeza de caballo es una placa cerrada (sector circular), no un rizo abierto', () => {
+    const caja = montar()
+    for (const b of caja.querySelectorAll('.balancin')) {
+      const cabeza = b.querySelector('.balancin__viga .balancin__cabeza')
+      const d = cabeza.getAttribute('d')
+      // Un sector circular usa un arco (comando A) y cierra (Z): un rizo
+      // hecho de curvas Bézier (C) sin cerrar es exactamente lo que se sacó.
+      expect(d, 'la cabeza no tiene un borde curvo en arco (A): no es un sector circular').toMatch(/A/)
+      expect(/Z\s*$/i.test(d.trim()), 'la cabeza queda con un extremo suelto: no es una placa cerrada').toBe(true)
+    }
+  })
+
+  it('cabeza y cable son hijos de la viga, para que la acompañen cuando cabecee', () => {
+    const caja = montar()
+    for (const b of caja.querySelectorAll('.balancin')) {
+      const viga = b.querySelector('.balancin__viga')
+      expect(viga.querySelector('.balancin__cabeza')).not.toBeNull()
+      expect(viga.querySelector('.balancin__cable')).not.toBeNull()
+    }
+  })
+
+  it('el cable cuelga vertical del borde de la cabeza y cae alineado con el pozo de su balancín', () => {
+    const caja = montar()
+    const balancines = [...caja.querySelectorAll('.balancin')]
+    const casings = [...caja.querySelectorAll('.corte__casing')]
+    expect(balancines).toHaveLength(casings.length)
+
+    balancines.forEach((b, i) => {
+      const cable = b.querySelector('.balancin__viga .balancin__cable')
+      expect(cable).not.toBeNull()
+      const x1 = Number(cable.getAttribute('x1'))
+      const x2 = Number(cable.getAttribute('x2'))
+      expect(x1, 'el cable no es vertical').toBe(x2)
+
+      // El cable vive en coordenadas locales del balancín: lo llevo a
+      // coordenadas absolutas con el mismo translate/scale que el SVG le
+      // aplica al grupo, para compararlo con el casing del pozo (que ya está
+      // en absolutas).
+      const transform = b.getAttribute('transform')
+      const [, tx, , escala] = transform.match(/translate\(([-\d.]+) ([-\d.]+)\) scale\(([-\d.]+)\)/)
+      const xAbsolutoCable = Number(tx) + x1 * Number(escala)
+      const xAbsolutoCasing = Number(casings[i].getAttribute('x1'))
+      expect(xAbsolutoCable, 'el cable no cae sobre el pozo de su balancín').toBeCloseTo(xAbsolutoCasing, 0)
+    })
+  })
 })
