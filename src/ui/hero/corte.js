@@ -66,7 +66,21 @@ function bandas() {
   // Pesos relativos, no espesores reales: los reales varían en órdenes de
   // magnitud y dibujarlos a escala haría ilegible media columna. La roca madre
   // lleva algo más de alto porque es donde entran los laterales.
-  const pesos = [1.05, 0.95, 1.1, 0.9, 1.0, 1.35, 0.95, 1.0, 1.15]
+  //
+  // El último peso (1.55, era 1.15) no fija el alto de LAJAS -esa banda
+  // cierra exacto contra ALTO, más abajo- pero sí entra en `suma`, así que
+  // subirlo achica las otras ocho ~3-4% cada una (sus pesos entre sí no
+  // cambian) y con eso arranca LAJAS más arriba. Es la manija que le compró
+  // presupuesto vertical al rincón de las leyendas (Tarea 9): con 1.15,
+  // LAJAS arrancaba en y=665 y sólo quedaban 35 unidades locales hasta ALTO
+  // (720) para "CUENCA NEUQUINA" y "PROFUNDIDAD (m)" -no alcanzaba ni para
+  // separarlas 24+20 de LAJAS ni para que la segunda terminara antes de
+  // ALTO (ver el comentario junto a `yCuenca`, más abajo). Con 1.55, LAJAS
+  // arranca en y=650: 15 unidades más de margen, medidas con
+  // getBoundingClientRect() real en los cinco viewports, sin achicar
+  // ninguna banda por debajo de 20 unidades (el piso que vigila el test de
+  // rótulos consecutivos).
+  const pesos = [1.05, 0.95, 1.1, 0.9, 1.0, 1.35, 0.95, 1.0, 1.55]
   const suma = pesos.reduce((a, b) => a + b, 0)
   let y = GEOMETRIA.HORIZONTE
   return COLUMNA_NEUQUINA.map((f, i) => {
@@ -243,9 +257,41 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   // vez. Los dos márgenes que siguen (a la última banda, y entre las dos
   // leyendas entre sí) están medidos con getBoundingClientRect() real, no
   // calculados a partir de la métrica de la fuente -- ver el reporte.
+  // Revisión de la Tarea 9: los 10 puntos de la Ronda 5 no alcanzaban. Esa
+  // cifra es distancia entre BASELINES, no margen entre cajas renderizadas:
+  // hay que restarle el alto real de las dos fuentes (13px el rótulo de
+  // banda, 11px la leyenda) y los dos halos que `paint-order: stroke` les
+  // suma para que se lean sobre la trama (3,5px y 3px) -unas 14 unidades en
+  // total- antes de que quede margen de verdad. Con 10, sobraban -4: medido
+  // con getBoundingClientRect() real, "LAJAS" y "CUENCA NEUQUINA" se pisaban
+  // -5 a -8px en los cinco viewports (1920x1080 a 1200x800), pese a que el
+  // test que vigila esto pasaba: su piso (8) estaba calibrado por debajo de
+  // lo que la fuente y los halos exigen.
+  //
+  // 24 solo no alcanzaba: subirlo sin tocar nada más movía el problema, no
+  // lo resolvía. `yLeyenda` (dos líneas más abajo) quedaba en 729 unidades
+  // locales -720 es ALTO, el borde inferior del viewBox- y el `<svg>` recorta
+  // ahí (overflow implícito, no `visible`): la leyenda de profundidad, que
+  // antes se leía entera, pasaba a mostrar sólo una tira de un par de
+  // unidades en la punta de sus letras, el resto recortado. Confirmado
+  // navegando de verdad (CDP, movimiento reducido): con 24 y nada más,
+  // `escena.bottom - leyenda.bottom` daba ENTRE -12 y -19px en los cinco
+  // viewports -la leyenda invadiendo la banda del buscador, no al revés-.
+  // Es la misma familia de bug que nombró la Ronda 5 (una coordenada que no
+  // sabe dónde termina su vecino), sólo que del otro lado: acá el vecino de
+  // abajo es el borde del lienzo, no otro rótulo.
+  //
+  // El arreglo real no podía vivir sólo en este número: entre el fin del
+  // rótulo de LAJAS y ALTO había 35 unidades locales, y 24 (este margen) +
+  // 20 (el margen cuenca↔leyenda de abajo, ya medido y bueno) piden 44 -no
+  // entran, sea cual sea el reparto entre los dos. Le compré presupuesto al
+  // rincón achicando las otras ocho bandas ~3-4% cada una (el último peso de
+  // `bandas()`, más arriba): con eso LAJAS arranca 15 unidades más arriba y
+  // los tres márgenes de este rincón -LAJAS↔cuenca, cuenca↔leyenda,
+  // leyenda↔borde- dan positivos a la vez, medidos en los cinco viewports.
   const ultimaBanda = capas[capas.length - 1]
   const finRotuloUltimaBanda = ultimaBanda.y + 20
-  const yCuenca = finRotuloUltimaBanda + 10
+  const yCuenca = finRotuloUltimaBanda + 24
   const yLeyenda = yCuenca + 20
 
   const escala = [0, 1000, 2000, 3000].map((m) => {

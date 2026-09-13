@@ -17,8 +17,9 @@ Este sitio no es oficial ni representa a la Secretaría de Energía.
 ## Estado
 
 Funcionando. El sitio busca sobre 85.609 pozos, los pinta en el mapa y arma el CSV en
-el navegador. No hace ninguna llamada al origen: todo sale de artefactos generados por
-`npm run build:index`.
+el navegador. Quien llega sin nada en la URL entra por un hero con el corte geológico
+esquemático de la cuenca Neuquina, animado en seis actos, que ocupa el tiempo que tarda
+en cargar el índice; un enlace compartido entra directo a la herramienta.
 
 ## Cómo se usa
 

@@ -385,7 +385,38 @@ describe('construirCorte', () => {
     const yCuenca = Number(cuenca.getAttribute('y'))
     expect(yCuenca, 'la cuenca tiene que ir abajo del rótulo de la última banda').toBeGreaterThan(finUltimoRotulo)
     const separacion = yCuenca - finUltimoRotulo
-    expect(separacion, 'el rótulo de la cuenca se pisa con el de la última banda (Ronda 5, Critical 2)').toBeGreaterThanOrEqual(8)
+    // Piso subido de 8 a 20 en la Tarea 9: este test sólo ve coordenadas del
+    // SVG (distancia entre baselines), no cajas renderizadas, así que su piso
+    // tiene que superar lo que la fuente y los halos se comen antes de dejar
+    // margen real -13px el alto del rótulo de banda, 11px la leyenda, más los
+    // halos de `paint-order: stroke` (3,5px y 3px)-, unas 14 unidades en
+    // total. Con el piso viejo (8), pasaba en verde con "LAJAS" y "CUENCA
+    // NEUQUINA" superpuestos -5 a -8px en los cinco viewports (medido con
+    // getBoundingClientRect() real): el test vigilaba menos de lo que la
+    // realidad exige. El par vecino (cuenca↔leyenda, el test de arriba) ya
+    // pedía 18; este no puede pedir menos que ese vecino sin volver a quedar
+    // corto.
+    expect(separacion, 'el rótulo de la cuenca se pisa con el de la última banda (Ronda 5, Critical 2)').toBeGreaterThanOrEqual(20)
+  })
+
+  // Revisión de la Tarea 9: subir el margen de arriba (Ronda 5 -> 24) sin
+  // vigilar esto por poco introduce un bug nuevo, peor que el que arregla.
+  // El `<svg>` recorta todo lo que cae en y > GEOMETRIA.ALTO (es el borde
+  // inferior del viewBox, y su overflow no es `visible`): con el margen en
+  // 24 y nada más, la leyenda de profundidad caía en y=729 -9 unidades
+  // pasado ALTO=720- y el navegador la mostraba recortada casi por
+  // completo, no superpuesta con nada, directamente invisible en su
+  // mayor parte. Confirmado navegando de verdad (CDP): `escena.bottom -
+  // leyenda.bottom` daba entre -12 y -19px en los cinco viewports. Este
+  // test vigila esa cuenta en coordenadas de lienzo, con el mismo margen de
+  // seguridad (unas 5 unidades) que dejaba el reparto de antes de esta
+  // tarea entre el halo/descenso de la leyenda y el borde.
+  it('la leyenda de profundidad no cae más allá de ALTO: el svg la recortaría (Tarea 9)', () => {
+    const caja = montar()
+    const leyenda = caja.querySelector('.corte__leyenda')
+    const yLeyenda = Number(leyenda.getAttribute('y'))
+    const margen = GEOMETRIA.ALTO - yLeyenda
+    expect(margen, 'la leyenda cae después de ALTO: el svg la recorta').toBeGreaterThanOrEqual(5)
   })
 
   it('el rótulo de la cuenca vive dentro de .corte__escala: se esconde y se hunde con la leyenda sin reglas propias', () => {
