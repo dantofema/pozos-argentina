@@ -342,6 +342,19 @@
 .corte__brillo-borde, .corte__brillo-centro { stop-color: var(--vaca); }
 
 .corte__casing, .corte__lateral { stroke: var(--cobre); stroke-width: 2.4; fill: none; }
+/* La trama de partículas: 6 de trazo y 14 de hueco, el paso de 20 unidades
+   que `corte.js` usa para dimensionar el recorte y el desplazamiento. Nace
+   invisible porque durante la entrada el lateral todavía se está extendiendo
+   (`corte-extender`) y una trama quieta sobre un tubo que crece lee como un
+   error; aparece al pasar a reposo. */
+.corte__particulas {
+  stroke: var(--cobre);
+  stroke-width: 3.2;
+  fill: none;
+  stroke-dasharray: 6 14;
+  stroke-linecap: round;
+}
+.corte__flujo { opacity: 0; }
 .balancin path, .balancin circle {
   stroke: var(--tinta);
   stroke-width: 3;
@@ -501,9 +514,31 @@
   transform-origin: 100% 100%;
   animation: balancin-cabecear var(--periodo) ease-in-out infinite;
 }
-.hero--reposo .corte__lateral {
+/* Las partículas del reposo se mueven con `transform` y no con
+   `stroke-dashoffset` (revisión final, Important 3). G3 dice que el reposo
+   -el movimiento que corre para siempre- sólo anima `transform` y `opacity`,
+   y reserva las propiedades de paint para la entrada, que corre una sola vez.
+   `corte-fluir` animaba `stroke-dashoffset` infinite: era la única regla de la
+   hoja que violaba G3, y el test que debía atajarla tenía justo esa propiedad
+   en su lista de permitidas, así que era una excepción que nunca se decidió.
+
+   Se decidió por cambiar la técnica y no por escribir la excepción: la trama
+   ahora vive en una línea propia (`.corte__particulas`), recortada al largo
+   exacto del lateral, y lo que se anima es el desplazamiento del grupo que la
+   contiene, un paso de trama por ciclo. Como la línea sobresale un paso por
+   cada lado, al terminar el ciclo la trama cae sobre sí misma y no hay
+   costura. El período sale del balancín de ese pozo, así que los tres flujos
+   corren desacompasados igual que los cabeceos. */
+/* El lateral baja a un tercio en el reposo: es el tubo, y lo que tiene que
+   leerse moviéndose adentro son las partículas. Con los dos al mismo peso y
+   el mismo color, la trama quedaba dibujada sobre una línea llena y no se
+   distinguía -medido al mirar el render: el lateral se veía macizo y el
+   movimiento, invisible-. Es una opacidad estática, no animada: G3 habla de
+   lo que se anima. */
+.hero--reposo .corte__lateral { opacity: 0.3; }
+.hero--reposo .corte__flujo {
+  opacity: 1;
   animation: corte-fluir calc(var(--periodo, 4s) * 2) linear infinite;
-  stroke-dasharray: 6 14;
 }
 /* La antorcha titila en su propio ritmo, ajeno a los balancines: un período que
    no es múltiplo de ninguno de los tres, así que el conjunto no sincroniza nunca.
@@ -573,7 +608,7 @@
 @keyframes corte-subir { from { transform: translateY(14px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
 @keyframes balancin-cabecear { 0%, 100% { transform: rotate(-7deg) } 50% { transform: rotate(7deg) } }
 @keyframes balancin-girar { to { transform: rotate(360deg) } }
-@keyframes corte-fluir { to { stroke-dashoffset: -40 } }
+@keyframes corte-fluir { to { transform: translateX(var(--flujo, -20px)) } }
 /* Irregular a propósito: una llama que pulsa con un seno perfecto lee como un
    latido, no como fuego. Los cuatro pasos desparejos rompen la periodicidad. */
 @keyframes antorcha-titilar {
@@ -598,8 +633,15 @@
     transition: none !important;
   }
   .corte__horizonte { stroke-dasharray: none; }
-  .corte__lateral { stroke-dasharray: none; }
   .corte__estepa { stroke-dasharray: none; }
+  /* El lateral queda como tubo entero y sin trama, que es como quedaba antes
+     de que las partículas se mudaran a su propia línea: con la animación
+     apagada, una trama quieta encima del tubo no comunica nada y ensucia el
+     cuadro final. `.hero .corte__flujo` y no `.corte__flujo` a secas: tiene
+     que ganarle a `.hero--reposo .corte__flujo`, que tiene la misma
+     especificidad y viene antes. */
+  .hero .corte__flujo { opacity: 0; }
+  .hero .corte__lateral { opacity: 1; }
 }
 
 /* ---------- Angosto ---------- */

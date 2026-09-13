@@ -169,7 +169,14 @@ describe('presupuesto de propiedades animadas (G3)', () => {
       .map((m) => m[1])
     expect(usadosEnReposo.length).toBeGreaterThan(0)
 
-    const PERMITIDAS = new Set(['transform', 'opacity', 'stroke-dashoffset'])
+    // Sin `stroke-dashoffset` (revisión final, Important 3). Estaba en esta
+    // lista, y era justo la propiedad que G3 prohíbe en el reposo: una
+    // allowlist que incluye lo prohibido no es una guarda, es una excepción
+    // que nadie adjudicó. La excepción se cerró del otro lado -las partículas
+    // de los laterales pasaron a moverse con `transform`, ver
+    // `.hero--reposo .corte__flujo` en hero.css-, así que la lista puede
+    // decir lo que G3 dice y nada más.
+    const PERMITIDAS = new Set(['transform', 'opacity'])
     for (const nombre of usadosEnReposo) {
       const cuerpo = bloqueDeKeyframe(css, nombre)
       expect(cuerpo, `no existe @keyframes ${nombre}`).not.toBeNull()

@@ -79,6 +79,12 @@ const CABEZA_CABLE_X = 57
  * locales: 160 de 1900, o sea una banda fina y no un telón. */
 const ANCHO_BRILLO = 160
 
+/** El paso de la trama de partículas del Acto V (6 de trazo + 14 de hueco, ver
+ * `.corte__particulas` en hero.css). El reposo desplaza el grupo exactamente
+ * un paso por ciclo: así la trama cae sobre sí misma y el bucle no tiene
+ * costura. */
+const PASO_FLUJO = 20
+
 const miles = (n) => n.toLocaleString('es-AR')
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -284,15 +290,44 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   // es del borde de la cabeza de donde cuelga el cable que baja hasta acá
   // (CABEZA_CABLE_X, la misma constante que dibuja el cable en `unBalancin`),
   // y es esa coincidencia la que explica el mecanismo en el dibujo.
-  const pozosDibujados = BALANCINES.map(({ x, escala }, i) => {
+  const pozosDibujados = BALANCINES.map(({ x, escala, periodo }, i) => {
     const xPozo = Math.round(x + CABEZA_CABLE_X * escala)
+    const xPunta = xPozo + (i % 2 === 0 ? 230 : -230)
+    const izquierda = Math.min(xPozo, xPunta)
+    const derecha = Math.max(xPozo, xPunta)
+    // Las partículas del Acto V viajan DESDE la punta HACIA el casing, que es
+    // para donde corre la producción en un lateral horizontal: entra a lo
+    // largo del tramo y sube por el pozo. Como los laterales alternan de
+    // lado, el signo del viaje también.
+    const flujo = xPunta > xPozo ? -PASO_FLUJO : PASO_FLUJO
     return `
-      <g class="corte__pozo">
+      <g class="corte__pozo" style="--periodo:${periodo}; --flujo:${flujo}px">
         <line class="corte__casing" x1="${xPozo}" y1="${HORIZONTE}" x2="${xPozo}" y2="${profundidadLateral}" />
         <line class="corte__lateral" data-profundidad="${profundidadLateral}"
               x1="${xPozo}" y1="${profundidadLateral}"
-              x2="${xPozo + (i % 2 === 0 ? 230 : -230)}" y2="${profundidadLateral}" />
+              x2="${xPunta}" y2="${profundidadLateral}" />
+        <!-- Las partículas viven en su propio grupo recortado al largo exacto
+             del lateral, y la línea que las dibuja sobresale un paso de la
+             trama por cada lado: así el grupo se puede desplazar un paso
+             entero con un transform -sin tocar ninguna propiedad de paint, que
+             es lo que G3 prohíbe en el reposo- y la trama vuelve a caer sobre
+             sí misma, sin que se vea ni el borde que entra ni el que sale. -->
+        <g class="corte__flujo" clip-path="url(#corte-flujo-${i})">
+          <line class="corte__particulas"
+                x1="${izquierda - PASO_FLUJO}" y1="${profundidadLateral}"
+                x2="${derecha + PASO_FLUJO}" y2="${profundidadLateral}" />
+        </g>
       </g>`
+  }).join('')
+
+  const recortesDeFlujo = BALANCINES.map(({ x, escala }, i) => {
+    const xPozo = Math.round(x + CABEZA_CABLE_X * escala)
+    const xPunta = xPozo + (i % 2 === 0 ? 230 : -230)
+    const izquierda = Math.min(xPozo, xPunta)
+    return `
+    <clipPath id="corte-flujo-${i}">
+      <rect x="${izquierda}" y="${profundidadLateral - 6}" width="230" height="12" />
+    </clipPath>`
   }).join('')
 
   // Las marcas viven en su propio canal, pegado al margen izquierdo
@@ -400,7 +435,7 @@ export function construirCorte({ formaciones, pozos, periodo }) {
       <stop class="corte__brillo-borde" offset="0" stop-opacity="0" />
       <stop class="corte__brillo-centro" offset="0.5" stop-opacity="0.5" />
       <stop class="corte__brillo-borde" offset="1" stop-opacity="0" />
-    </linearGradient>
+    </linearGradient>${recortesDeFlujo}
   </defs>
 
   <g class="corte__subsuelo">${estratos}</g>
