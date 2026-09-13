@@ -52,7 +52,16 @@ export function crearHero(contenedor, { manifiesto }) {
   // pisen ni se dupliquen -acá ni se tocan, porque viven en contenedores
   // distintos).
   const cajaBuscador = contenedor.querySelector('.hero__buscador-campo')
-  const coreografia = crearCoreografia(raiz, { reducido })
+  // El Acto VI: el horizonte sube hasta el borde superior del área del mapa y
+  // se queda ahí -es el único elemento continuo entre el hero y la
+  // herramienta-. Dónde está ese borde lo sabe el documento, no el hero, así
+  // que la medición se le pasa a la coreografía como función en vez de que
+  // ella salga a buscarla (A2). Se resuelve en el momento de la salida y no
+  // ahora: el área puede cambiar de alto si la barra se envuelve.
+  const coreografia = crearCoreografia(raiz, {
+    reducido,
+    destinoHorizonte: () => document.querySelector('.area')?.getBoundingClientRect().top ?? null,
+  })
 
   // Nadie escribe con tres balancines moviéndose en la visión periférica (M1),
   // y una pestaña de fondo no tiene por qué gastar batería (M2).

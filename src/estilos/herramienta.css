@@ -137,6 +137,11 @@
   display: grid;
   grid-template-columns: 4fr 1fr;
   min-height: 0; /* si no, el mapa desborda la fila del grid */
+  /* El borde donde aterriza la línea de horizonte del hero al relevar (Acto
+     VI): el spec dice que el horizonte "sube y se convierte en el borde
+     superior del área del mapa". Sin este borde, la línea llegaba a un lugar
+     donde no había nada y la continuidad se cortaba en el último cuadro. */
+  border-top: 1px solid var(--linea);
 }
 
 .mapa { width: 100%; height: 100%; min-height: 320px; }

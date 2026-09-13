@@ -75,6 +75,10 @@ const ANTORCHA_X = 1125
  */
 const CABEZA_CABLE_X = 57
 
+/** El ancho del brillo que barre la roca madre en el Acto III, en unidades
+ * locales: 160 de 1900, o sea una banda fina y no un telón. */
+const ANCHO_BRILLO = 160
+
 const miles = (n) => n.toLocaleString('es-AR')
 const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -223,6 +227,24 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   const madre = capas.find((b) => b.rocaMadre)
   const profundidadLateral = madre.y + Math.round(madre.h / 2)
 
+  // El paso de la cascada del Acto II, que NO es el orden estratigráfico
+  // (revisión final, Important 1). El Acto II deposita ocho bandas de abajo
+  // hacia arriba entre 1,2 y 2,6s; la roca madre sale de esa cascada y llega
+  // sola en el Acto III (2,6 -> 3,2s), con todo lo demás quieto. Con un solo
+  // contador para las nueve, la única forma de retrasarla era empujarla desde
+  // adentro de la cascada -el +260ms que había- y eso la hacía llegar en el
+  // medio, con cuatro bandas todavía por entrar, y DESPUÉS de Quintuco, que
+  // está encima: exactamente lo que el Acto II dice que no.
+  //
+  // Con dos contadores, `--orden` sigue siendo el orden estratigráfico real
+  // (0 = Lajas, la más antigua, abajo) y `--paso` es el lugar en la cascada,
+  // salteando a la madre. Las ocho quedan en orden estricto de abajo hacia
+  // arriba y la madre queda fuera, que es lo que la deja llegar sola.
+  const pasos = new Map()
+  capas.filter((b) => !b.rocaMadre)
+    .sort((a, b) => b.indice - a.indice)   // de abajo hacia arriba
+    .forEach((b, i) => pasos.set(b.nombre, i))
+
   const estratos = capas.map((b) => {
     const n = conteoDe(formaciones, b.nombre)
     // Sin conteo se rotula sólo el nombre: nunca un 0 inventado ni un undefined.
@@ -241,11 +263,20 @@ export function construirCorte({ formaciones, pozos, periodo }) {
     return `
       <g class="corte__estrato${b.rocaMadre ? ' corte__estrato--madre' : ''}"
          data-formacion="${esc(b.nombre)}"
-         style="--orden:${capas.length - 1 - b.indice}">
+         style="--orden:${capas.length - 1 - b.indice}; --paso:${pasos.get(b.nombre) ?? pasos.size}">
         <rect class="corte__relleno" x="0" y="${b.y}" width="${ANCHO}" height="${b.h}"
               fill="url(#${idDeTrama(b.trama)})" />
         <line class="corte__contacto" x1="0" y1="${b.y}" x2="${ANCHO}" y2="${b.y}" />
-        <text class="corte__rotulo" x="74" y="${b.y + 20}">${rotulo}</text>
+        <text class="corte__rotulo" x="74" y="${b.y + 20}">${rotulo}</text>${b.rocaMadre ? `
+        <!-- El brillo del Acto III: una banda angosta que barre la roca madre
+             a lo largo cuando llega. Vive en el SVG y no en el CSS porque un
+             degradé que se mueve con \`transform\` es lo que hace "barrer"; un
+             pulso de opacidad, que es lo que había, sólo la prende y la
+             apaga. Nace fuera del lienzo (x negativo) y en reposo es
+             invisible (\`opacity: 0\` en hero.css), así que con movimiento
+             reducido -que apaga la animación- no se ve nunca. -->
+        <rect class="corte__brillo" x="${-ANCHO_BRILLO}" y="${b.y}"
+              width="${ANCHO_BRILLO}" height="${b.h}" fill="url(#corte-brillo)" />` : ''}
       </g>`
   }).join('')
 
@@ -359,7 +390,18 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   antorcha con su llama. Bajo la superficie, nueve formaciones en orden
   estratigráfico; la formación Vaca Muerta, la roca madre, es el objetivo de
   los pozos horizontales.</desc>
-  <defs>${defsDeTramas()}</defs>
+  <defs>
+    ${defsDeTramas()}
+    <!-- El degradé del brillo del Acto III. Los \`stop-color\` los pone el CSS
+         (hero.css) y no un atributo: tienen que salir del token de la roca
+         madre, que cambia con el tema, y \`currentColor\` dentro de un \`defs\`
+         resuelve contra el \`color\` del propio \`<svg>\`, que es la tinta. -->
+    <linearGradient id="corte-brillo" x1="0" y1="0" x2="1" y2="0">
+      <stop class="corte__brillo-borde" offset="0" stop-opacity="0" />
+      <stop class="corte__brillo-centro" offset="0.5" stop-opacity="0.5" />
+      <stop class="corte__brillo-borde" offset="1" stop-opacity="0" />
+    </linearGradient>
+  </defs>
 
   <g class="corte__subsuelo">${estratos}</g>
   <g class="corte__pozos">${pozosDibujados}</g>

@@ -117,12 +117,21 @@ describe('construirCorte', () => {
 
   it('numera los estratos de abajo hacia arriba, porque así se deposita la roca', () => {
     // --orden 0 es la más antigua (Lajas, abajo) y 8 la más joven (Rayoso,
-    // arriba). El CSS lo usa como retardo, así que este orden ES el Acto II.
+    // arriba): el orden estratigráfico real, que es dato del dibujo.
+    //
+    // El comentario que estaba acá decía que este orden ES el Acto II. Era
+    // falso desde que la roca madre llevaba un empujón de +260ms, y fue parte
+    // de por qué nadie vio que el Acto III no existía (revisión final,
+    // Important 1): comparar dos de las nueve bandas por --orden no dice nada
+    // sobre CUÁNDO entra cada una. El Acto II se escalona contra --paso, y lo
+    // vigila el describe del final de este archivo.
     const caja = montar()
-    const lajas = caja.querySelector('[data-formacion="LAJAS"]')
-    const rayoso = caja.querySelector('[data-formacion="RAYOSO"]')
-    expect(lajas.style.getPropertyValue('--orden')).toBe('0')
-    expect(rayoso.style.getPropertyValue('--orden')).toBe('8')
+    const ordenes = [...caja.querySelectorAll('[data-formacion]')]
+      .map((g) => [g.dataset.formacion, Number(g.style.getPropertyValue('--orden'))])
+    // Las nueve, no dos: arriba en el DOM es la más joven.
+    expect(ordenes.map(([, o]) => o)).toEqual([8, 7, 6, 5, 4, 3, 2, 1, 0])
+    expect(Object.fromEntries(ordenes).LAJAS).toBe(0)
+    expect(Object.fromEntries(ordenes).RAYOSO).toBe(8)
   })
 
   it('los pozos entran a la roca madre, que es lo que explica el lateral', () => {
@@ -550,5 +559,91 @@ describe('el texto no pinta sobre el dibujo (revisión final, Critical 2)', () =
     } else {
       expect(pintaFondo).toBe(false)
     }
+  })
+})
+
+// --- Revisión final, Important 1: el Acto III no existía. Los retardos leídos
+// de getComputedStyle daban LAJAS 1200 · LOTENA 1350 · TORDILLO 1500 ·
+// QUINTUCO 1800 · VACA MUERTA 1910 · MULICHINCO 1950 · AGRIO 2100 · HUITRIN
+// 2250 · RAYOSO 2400: la roca madre llegaba en el MEDIO de la cascada, con
+// cuatro bandas todavía por entrar, y después de Quintuco, que está encima
+// suyo -justo lo que el Acto II dice que no-. El spec la pone SOLA en
+// 2,6 -> 3,2s, con "todo lo demás quieto".
+//
+// Nada lo vigilaba: el test del Acto II comparaba el --orden de dos de las
+// nueve bandas, y su comentario afirmaba que ese orden ES el Acto II, que era
+// falso desde que existía el empujón de +260ms.
+describe('el Acto II y el Acto III son dos actos, no una cascada (revisión final, Important 1)', () => {
+  const base = import.meta.url
+  const hoja = readFileSync(new URL('../../estilos/hero.css', base), 'utf-8')
+
+  // Los tiempos se leen de la hoja: son los mismos que el navegador computa,
+  // sólo que sin navegador (jsdom no resuelve `calc()` en getComputedStyle).
+  const duracion = Number(/animation:\s*corte-depositar\s*(\d+)ms/.exec(hoja)[1])
+  const cascada = /animation-delay:\s*calc\((\d+)ms\s*\+\s*var\(--paso\)\s*\*\s*(\d+)ms\)/.exec(hoja)
+  const madre = /\.hero--entrando \.corte__estrato--madre \{\s*animation-delay:\s*(\d+)ms/.exec(hoja)
+
+  const bandas = () => [...montar().querySelectorAll('.corte__estrato')].map((g) => ({
+    nombre: g.dataset.formacion,
+    orden: Number(g.style.getPropertyValue('--orden')),
+    paso: Number(g.style.getPropertyValue('--paso')),
+    esMadre: g.classList.contains('corte__estrato--madre'),
+  })).sort((a, b) => a.orden - b.orden)
+
+  it('la hoja declara los dos tiempos que el Acto II y el Acto III necesitan', () => {
+    expect(cascada, 'el Acto II ya no escalona contra --paso').not.toBeNull()
+    expect(madre, 'la roca madre no tiene retardo propio: volvió a la cascada').not.toBeNull()
+  })
+
+  it('el Acto II deposita las ocho de abajo hacia arriba, sin saltarse el orden', () => {
+    const [, arranque, salto] = cascada.map(Number)
+    const cascadaReal = bandas().filter((b) => !b.esMadre)
+    expect(cascadaReal).toHaveLength(8)
+    let anterior = -Infinity
+    for (const b of cascadaReal) {
+      const retardo = arranque + b.paso * salto
+      expect(retardo, `${b.nombre} entra antes que la banda que tiene debajo`).toBeGreaterThan(anterior)
+      anterior = retardo
+    }
+    // Y el acto entero entra en su ventana del spec (1,2 -> 2,6s).
+    expect(arranque).toBe(1200)
+    expect(anterior + duracion, 'el Acto II se pasa de los 2,6s e invade el Acto III').toBeLessThanOrEqual(2600)
+  })
+
+  it('la roca madre llega sola, después de todas, y con todo lo demás quieto', () => {
+    const [, arranque, salto] = cascada.map(Number)
+    const retardoMadre = Number(madre[1])
+    const otras = bandas().filter((b) => !b.esMadre)
+    const ultimoFin = Math.max(...otras.map((b) => arranque + b.paso * salto + duracion))
+
+    // "El tempo se quiebra: todo lo demás queda quieto." No alcanza con que
+    // llegue última: tiene que llegar cuando ninguna otra se está moviendo
+    // todavía, que es la diferencia entre una composición y un stagger.
+    expect(retardoMadre, 'la roca madre llega con otra banda todavía en movimiento')
+      .toBeGreaterThanOrEqual(ultimoFin)
+    // Y en la ventana que el spec le da (2,6 -> 3,2s).
+    expect(retardoMadre).toBeGreaterThanOrEqual(2600)
+    expect(retardoMadre + duracion, 'el Acto III se pasa de los 3,2s').toBeLessThanOrEqual(3200)
+  })
+
+  it('ninguna banda se deposita antes que la que tiene debajo, tampoco la madre', () => {
+    // El otro lado del hallazgo: con un solo contador, atrasar a la madre la
+    // ponía después de Quintuco, que está ENCIMA. Acá se verifica que el
+    // hueco que deja en el Acto II es suyo y de nadie más: las ocho respetan
+    // el orden estratigráfico entre ellas, y la madre no se intercala en el
+    // medio de ninguna.
+    const cascadaReal = bandas().filter((b) => !b.esMadre)
+    const pasos = cascadaReal.map((b) => b.paso)
+    expect(pasos, 'los pasos de la cascada no son 0..7 de abajo hacia arriba')
+      .toEqual([0, 1, 2, 3, 4, 5, 6, 7])
+  })
+
+  it('el brillo del Acto III barre la banda a lo largo y no es un pulso de opacidad', () => {
+    const brillo = montar().querySelector('.corte__estrato--madre .corte__brillo')
+    expect(brillo, 'la roca madre no tiene brillo: el Acto III pierde su barrido').not.toBeNull()
+    // Nace fuera del lienzo, a la izquierda: por eso puede entrar barriendo.
+    expect(Number(brillo.getAttribute('x'))).toBeLessThan(0)
+    const keyframe = /@keyframes corte-barrer \{[\s\S]*?\n\}/.exec(hoja)[0]
+    expect(keyframe, 'el brillo no se mueve: sigue siendo un pulso de opacidad').toContain('translateX')
   })
 })

@@ -186,3 +186,70 @@ describe('presupuesto de propiedades animadas (G3)', () => {
     }
   })
 })
+
+/**
+ * Revisión final, Important 2: el Acto VI era un fade, y el spec dice textual
+ * "No un fade". `.corte__horizonte` no tenía ninguna regla de salida y vivía
+ * fuera de los grupos que se animan, así que se desvanecía con todo lo demás:
+ * el horizonte no subía ni se convertía en el borde del área del mapa, y con
+ * eso se perdía lo único que el acto afirma -que hay un elemento continuo
+ * entre los dos estados-.
+ */
+describe('Acto VI: el horizonte es la bisagra, no un fade (Important 2)', () => {
+  function conHorizonte({ destino, ctm = { d: 2 }, caja = { top: 300, height: 4 } } = {}) {
+    const raiz = document.createElement('div')
+    const linea = document.createElement('div')
+    linea.className = 'corte__horizonte'
+    linea.getScreenCTM = () => ctm
+    linea.getBoundingClientRect = () => caja
+    raiz.appendChild(linea)
+    document.body.appendChild(raiz)
+    const c = crearCoreografia(raiz, {
+      reducido: false,
+      destinoHorizonte: destino === undefined ? null : () => destino,
+    })
+    return { raiz, c }
+  }
+
+  it('salir() deja medida la subida del horizonte, en unidades locales del SVG', () => {
+    // El destino está 202px por encima del centro de la línea (300+2), y una
+    // unidad local mide 2px: 101 unidades hacia arriba.
+    const { raiz, c } = conHorizonte({ destino: 100 })
+    c.entrar()
+    c.salir()
+    expect(raiz.style.getPropertyValue('--subida')).toBe('-101.0px')
+    raiz.remove()
+  })
+
+  it('sin destino no rompe la salida: el horizonte se queda quieto', () => {
+    const { raiz, c } = conHorizonte({ destino: undefined })
+    c.entrar()
+    c.salir()
+    expect(raiz.style.getPropertyValue('--subida')).toBe('')
+    expect(c.estado()).toBe('saliendo')
+    raiz.remove()
+  })
+
+  it('la hoja saca al horizonte del fade y lo manda al borde del área', async () => {
+    const { readFileSync } = await import('node:fs')
+    const base = import.meta.url
+    const hoja = readFileSync(new URL('../../estilos/hero.css', base), 'utf-8')
+
+    // Tiene regla propia de salida, y es un transform (no una opacidad).
+    const regla = /\.hero--saliendo \.corte__horizonte \{\s*animation:\s*([\w-]+)/.exec(hoja)
+    expect(regla, 'el horizonte volvió a no tener regla de salida: el Acto VI es un fade').not.toBeNull()
+    const keyframe = new RegExp(`@keyframes ${regla[1]} \\{[^}]*\\}[^}]*\\}`).exec(hoja)
+      ?? new RegExp(`@keyframes ${regla[1]} \\{[\\s\\S]*?\\n\\}`).exec(hoja)
+    expect(keyframe[0]).toContain('translateY')
+    expect(keyframe[0]).toContain('--subida')
+
+    // Y la raíz ya no se desvanece entera: si lo hiciera, se llevaría puesto
+    // al horizonte por más regla propia que tenga.
+    const irse = /@keyframes hero-irse \{[\s\S]*?\}/.exec(hoja)[0]
+    expect(irse, 'la raíz vuelve a desvanecerse entera y arrastra al horizonte').not.toMatch(/opacity/)
+
+    // El horizonte no está en el grupo que se hunde.
+    const hundirse = /\.hero--saliendo[^{]*\{\s*animation:\s*corte-hundirse/.exec(hoja)
+    expect(hundirse[0]).not.toContain('corte__horizonte')
+  })
+})

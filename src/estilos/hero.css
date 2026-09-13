@@ -334,6 +334,13 @@
   fill: var(--apagado);
 }
 
+/* El brillo de la roca madre vive invisible salvo durante el Acto III: nace
+   con `opacity: 0` para que el cuadro final -y el de movimiento reducido, que
+   apaga toda animación (G4)- no lo muestre. Los `stop-color` salen del token
+   de la roca madre, que es la tinta que le toca (C2). */
+.corte__brillo { opacity: 0; }
+.corte__brillo-borde, .corte__brillo-centro { stop-color: var(--vaca); }
+
 .corte__casing, .corte__lateral { stroke: var(--cobre); stroke-width: 2.4; fill: none; }
 .balancin path, .balancin circle {
   stroke: var(--tinta);
@@ -408,40 +415,65 @@
 .hero--entrando .corte__escala { animation: corte-aparecer 500ms 300ms both; }
 
 /* ---------- Acto II: la roca se deposita, de abajo hacia arriba ---------- */
-/* --orden 0 es la más antigua. Crece desde su propia base: lee deposición. */
+/* OCHO bandas, no nueve: la roca madre sale de esta cascada y llega sola en el
+   Acto III (revisión final, Important 1). El retardo va contra `--paso` -el
+   lugar en la cascada, que saltea a la madre (corte.js)- y no contra
+   `--orden` -el orden estratigráfico-: con un solo contador, retrasar a la
+   madre pedía empujarla desde adentro con un +260ms, y eso la hacía llegar en
+   el MEDIO de la cascada, con cuatro bandas por entrar y después de Quintuco,
+   que está encima suyo. Con `--paso` las ocho quedan en orden estricto de
+   abajo hacia arriba, que es lo que el Acto II afirma y es cierto de la roca.
+
+   125ms entre bandas y no 150ms: el spec pone el Acto II en 1,2 -> 2,6s y
+   dice "escalonado, ~150ms entre bandas". Ocho bandas a 150ms terminan en
+   2,77s, o sea invaden el Acto III, que es justo el acto que tiene que
+   quedarse solo. 125ms = (1400 - 520) / 7 es el paso que hace entrar las ocho
+   dentro de su acto: la última arranca en 2,075s y cierra en 2,595s. */
 .hero--entrando .corte__estrato {
   transform-box: fill-box;
   transform-origin: center bottom;
   animation: corte-depositar 520ms cubic-bezier(.2,.7,.3,1) both;
-  animation-delay: calc(1200ms + var(--orden) * 150ms);
+  animation-delay: calc(1200ms + var(--paso) * 125ms);
 }
 
 /* ---------- Acto III: Vaca Muerta, el foco ---------- */
-/* El quiebre de tempo: 260ms de más antes de que caiga. */
+/* El quiebre de tempo, que es lo que hace de esto una composición y no un
+   stagger: a los 2,6s las otras ocho ya están y NINGUNA se está moviendo -la
+   última cerró en 2,595s-. La roca madre cae en un hueco que quedó abierto
+   525ms a la vista, con su tinta propia y su rótulo en serif, y un brillo la
+   barre a lo largo. Cierra en 3,12s, adentro de los 2,6 -> 3,2 del spec. */
 .hero--entrando .corte__estrato--madre {
-  animation-delay: calc(1200ms + var(--orden) * 150ms + 260ms);
+  animation-delay: 2600ms;
 }
-.hero--entrando .corte__estrato--madre .corte__relleno {
-  animation: corte-barrer 760ms calc(1200ms + var(--orden) * 150ms + 560ms) both;
+/* El brillo entra cuando la banda ya está casi entera (2,7s) y cruza el
+   lienzo de izquierda a derecha: 160 unidades de ancho recorriendo 2060, que
+   son los 1900 del lienzo más su propio ancho para nacer y morir afuera. */
+.hero--entrando .corte__brillo {
+  animation: corte-barrer 480ms linear 2700ms both;
 }
 
 /* ---------- Acto IV: lo que hizo la gente ---------- */
+/* Los tres retardos se recortaron para que ningún acto termine después de
+   ENTRADA (4400ms, coreografia.js): `corte-extender` cerraba en 4420 y
+   `corte-subir` también, o sea que el JS pasaba a reposo con dos animaciones
+   a mitad de camino y el navegador las cortaba (revisión final, Important 4).
+   Ahora los tres cierran en 3900, 4360 y 4360. */
 .hero--entrando .corte__casing {
   transform-box: fill-box;
   transform-origin: center top;
   /* Rápido, enganche, rápido: lee máquina y no interfaz. */
-  animation: corte-perforar 780ms cubic-bezier(.9,.06,.12,.96) 3200ms both;
+  animation: corte-perforar 700ms cubic-bezier(.9,.06,.12,.96) 3200ms both;
 }
 .hero--entrando .corte__lateral {
   transform-box: fill-box;
-  animation: corte-extender 520ms cubic-bezier(.2,.7,.3,1) 3900ms both;
+  animation: corte-extender 500ms cubic-bezier(.2,.7,.3,1) 3860ms both;
 }
 /* El spec: "los balancines y la torre suben últimos." La antorcha no está
    nombrada, pero dejarla quieta y presente desde el cuadro cero mientras
    todo lo demás entra se ve roto, no intencional -- así que sube con la
    torre acá y titila recién en el Acto V, como ya estaba. */
 .hero--entrando .balancin, .hero--entrando .corte__torre, .hero--entrando .corte__antorcha {
-  animation: corte-subir 620ms cubic-bezier(.2,.7,.3,1) 3800ms both;
+  animation: corte-subir 560ms cubic-bezier(.2,.7,.3,1) 3800ms both;
 }
 
 /* ---------- Acto V: el campo trabaja ---------- */
@@ -484,27 +516,58 @@
 .hero--pausado *, .hero--pausado { animation-play-state: paused !important; }
 
 /* ---------- Acto VI: el relevo ---------- */
+/* "No un fade", textual en el spec. Hasta la revisión final lo era: la raíz se
+   desvanecía entera con `hero-irse`, y el horizonte -que no tiene regla
+   propia y no vive en ninguno de los grupos que se hunden- se iba con todo lo
+   demás. Perdido el horizonte, se perdía la única cosa que el Acto VI afirma:
+   que hay un elemento continuo entre los dos estados.
+
+   Ahora cada pieza se va por su propio camino. Lo que se apaga en la raíz es
+   sólo el FONDO de papel, que es lo que tapa el mapa; el resto: los estratos,
+   los pozos y la escala se hunden; la superficie, el texto y la banda del
+   buscador se desvanecen; y la línea de horizonte sube hasta el borde
+   superior del área del mapa y se queda ahí, opaca, hasta el último cuadro.
+   Cuando el hero se saca del DOM, el borde del área -que existe justamente
+   para esto, ver `.area` en herramienta.css- queda en ese mismo lugar. */
 .hero--saliendo { animation: hero-irse 600ms cubic-bezier(.4,0,1,1) both; }
 /* Hasta la Tarea 7, `.corte__cuenca` era un hermano suelto del `<svg>` -no
    vivía dentro de `.corte__subsuelo`- y había que sumarlo acá a mano para
    que no quedara quieto mientras el resto del subsuelo se hundía (Minor 6).
    Desde la Tarea 8 (revisión, hallazgo 2) vive DENTRO de `.corte__escala`
    -reubicado junto a la leyenda de profundidad-, así que hereda la animación
-   del grupo con sólo tres selectores, no cuatro: un `transform`/`opacity`
-   animado en el padre se ve en los hijos sin que cada uno necesite su propia
-   regla. */
+   del grupo con sólo tres selectores, no cuatro. */
 .hero--saliendo .corte__subsuelo, .hero--saliendo .corte__pozos,
 .hero--saliendo .corte__escala {
   animation: corte-hundirse 600ms cubic-bezier(.4,0,1,1) both;
 }
-.hero--saliendo .hero__texto, .hero--saliendo .corte__superficie {
+.hero--saliendo .hero__texto, .hero--saliendo .corte__superficie,
+.hero--saliendo .hero__buscador {
   animation: corte-aparecer 240ms reverse both;
+}
+/* La bisagra. `--subida` la mide `coreografia.js` en el momento de la salida,
+   en unidades locales del SVG: la distancia depende de dónde cae el horizonte
+   (escala del dibujo) y de dónde arranca el área del mapa (alto de la
+   cabecera y la barra), y ninguna de las dos se puede escribir acá. Sin esa
+   medición el default es 0 y el horizonte se queda quieto en vez de romperse.
+   Medido en los siete viewports reales: de -214px a +35px. */
+.hero--saliendo .corte__horizonte {
+  animation: horizonte-subir 600ms cubic-bezier(.4,0,1,1) both;
 }
 
 @keyframes corte-trazar { from { stroke-dashoffset: var(--largo) } to { stroke-dashoffset: 0 } }
 @keyframes corte-aparecer { from { opacity: 0 } to { opacity: 1 } }
 @keyframes corte-depositar { from { transform: scaleY(0); opacity: 0 } to { transform: scaleY(1); opacity: 1 } }
-@keyframes corte-barrer { 0% { opacity: .35 } 45% { opacity: 1 } 100% { opacity: 1 } }
+/* El brillo del Acto III. Antes era un pulso de opacidad sobre el relleno de
+   la banda -la prendía y la apagaba, no la barría-. Ahora es la banda del
+   degradé cruzando el lienzo con `transform`, que es lo que el spec llama
+   "un brillo fino la barre a lo largo". Termina en `opacity: 0`, así que el
+   `both` la deja invisible al pasar a reposo. */
+@keyframes corte-barrer {
+  0%   { opacity: 0; transform: translateX(0) }
+  18%  { opacity: 1 }
+  82%  { opacity: 1 }
+  100% { opacity: 0; transform: translateX(2060px) }
+}
 @keyframes corte-perforar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
 @keyframes corte-extender { from { transform: scaleX(0) } to { transform: scaleX(1) } }
 @keyframes corte-subir { from { transform: translateY(14px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
@@ -520,7 +583,10 @@
   76%      { transform: scaleY(1.07) scaleX(0.97); opacity: 0.92 }
 }
 @keyframes corte-hundirse { to { transform: translateY(28%); opacity: 0 } }
-@keyframes hero-irse { to { opacity: 0; visibility: hidden } }
+@keyframes horizonte-subir { to { transform: translateY(var(--subida, 0px)) } }
+/* Sólo el fondo: si esto volviera a ser `opacity: 0` sobre la raíz, se
+   llevaría puesto al horizonte y el Acto VI volvería a ser un fade. */
+@keyframes hero-irse { to { background-color: transparent } }
 
 /* ---------- Movimiento reducido (G4) ---------- */
 /* Lo único no negociable: para alguien con sensibilidad vestibular, tres
