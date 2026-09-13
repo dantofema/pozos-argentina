@@ -79,9 +79,17 @@
 }
 
 /* El dibujo llena `.hero__escena` entera, detrás del texto -- no es una
-   fila propia del layout, es un fondo. La razón es aritmética, no
-   estética: el corte mide 1200x720 (1,67:1) y el aspecto de un viewport
-   típico va de 1,60 a 1,78, casi el mismo; llenando la escena completa el
+   fila propia del layout, es un fondo.
+
+   ESTE COMENTARIO DECÍA, Y ERA FALSO: "el corte mide 1200x720 (1,67:1) y el
+   aspecto de un viewport típico va de 1,60 a 1,78, casi el mismo". Ese
+   razonamiento comparaba el aspecto del lienzo contra el de la PANTALLA, no
+   contra el de la escena, que es el viewport menos el cromo del navegador y
+   menos la banda del buscador. Una escena real es bastante más ancha que
+   1,67:1, así que el término del ancho mandaba y el cielo se evaporaba: a
+   1366x641 medía OCHO píxeles. Se deja escrito porque es el razonamiento que
+   dejó pasar el defecto, y borrarlo invita a que alguien lo reinvente.
+   Lo que sigue es la aritmética correcta. Con la escena completa el
    recorte de `slice` es de 45 unidades de cielo o ninguno, y los rótulos se
    ven a entre 15 y 21 píxeles.
 
@@ -107,8 +115,15 @@
      (1900/720 = 2,6389:1), así que el término del alto gana SIEMPRE, la
      escala vale `altoEscena/720` y el cielo vale exactamente el 36,1% del
      alto de la escena: `HORIZONTE/ALTO`. Deja de depender del ancho, que es
-     lo único que cierra el agujero para cualquier viewport y no sólo para
+     lo que cierra el agujero para cualquier ANCHO de viewport y no sólo para
      los siete de la tabla.
+
+     Lo que NO cierra, y conviene decirlo: la invariante fija la FRACCIÓN de
+     cielo, no su alto absoluto, y el bloque de texto tiene un piso de unos
+     163px. Medido, por debajo de unos 605px de alto de escena el texto vuelve
+     a rozar la estepa (1366x600 da 6x14px de choque). Queda por debajo de
+     cualquier navegador maximizado real -- un 1366x768 con barra de favoritos
+     deja unos 607px y mide limpio, +22px -- pero no es "cualquier viewport".
 
      Con ANCHO=1900 el techo no llega a recortar en ninguno de los siete
      (el aspecto de escena más ancho medido es 2,57:1, el de 1366x641), así

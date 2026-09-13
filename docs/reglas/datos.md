@@ -173,3 +173,22 @@ inventar un cero.
 
 El build no falla si una formación desaparece del origen: no es una guarda de
 volumen, es un rótulo. Lo loguea.
+
+## Seguimiento abierto del hero
+
+No son reglas: son dos cosas medidas que quedaron sin cerrar y que conviene no redescubrir.
+
+**Monitores de aspecto alto (4:3 y 5:4).** Los objetos de superficie del corte —tres
+balancines, la torre y la antorcha— se corrieron a la mitad derecha del lienzo para que el
+texto del hero no los pise. El costo, medido: a 1024×768 se ven **2 de los 5**, y a 1280×1024
+**1,4 de 5**. Antes del cambio se veían los cinco y los cuatro respectivamente. El dibujo sigue
+leyendo como corte geológico —los nueve estratos, la roca madre y los rótulos están intactos—
+así que degrada sin romper, pero la salida correcta es una regla por aspecto de escena que
+reacomode los objetos cuando la pantalla es alta, no una sola posición para todos los casos.
+
+**La tarjeta social no funciona en ningún scraper, y no funcionaba antes tampoco.** `og:image`
+necesita una URL absoluta y en el repo no hay dominio de despliegue, así que quedó relativa a
+propósito: inventar un dominio produce una etiqueta que parece correcta y no lo es. Ojo con un
+detalle: `twitter:card=summary_large_image` sin una imagen resoluble no degrada a una tarjeta
+chica, no muestra nada. Criterio de aceptación cuando haya dominio: `og:url` más `og:image`
+absoluta, las dos desde una variable de entorno del build, no escritas a mano.
