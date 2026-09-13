@@ -32,14 +32,24 @@ export function crearHero(contenedor, { manifiesto }) {
         <div class="hero__texto">
           <h1 class="hero__titulo">${TITULO}</h1>
           <p class="hero__bajada">${BAJADA}</p>
-          <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
         </div>
       </div>
-      <div class="hero__buscador">${campoDeshabilitado(manifiesto.pozos)}</div>
+      <div class="hero__buscador">
+        <div class="hero__buscador-campo">${campoDeshabilitado(manifiesto.pozos)}</div>
+        <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
+      </div>
     </div>`
 
   const raiz = contenedor.querySelector('.hero')
-  const cajaBuscador = contenedor.querySelector('.hero__buscador')
+  // Ronda 4 (ruling del coordinador): el dato se mudó a la banda del
+  // buscador, pero `cajaBuscador` -lo que `crearBuscador()` reemplaza
+  // entero y lo que se pausa/reanuda al enfocar- sigue siendo sólo el
+  // campo, no la banda completa. Si apuntara a `.hero__buscador`,
+  // `crearBuscador()` se comería `.hero__dato` al reemplazar el innerHTML
+  // (el cuidado que pidió la revisión: que el dato y el "Cargando…" no se
+  // pisen ni se dupliquen -acá ni se tocan, porque viven en contenedores
+  // distintos).
+  const cajaBuscador = contenedor.querySelector('.hero__buscador-campo')
   const coreografia = crearCoreografia(raiz, { reducido })
 
   // Nadie escribe con tres balancines moviéndose en la visión periférica (M1),

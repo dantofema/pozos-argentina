@@ -204,12 +204,6 @@
   color: var(--apagado);
   margin: 0.45rem 0 0;
 }
-.hero__dato {
-  font: 400 0.875rem/1 var(--mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--cobre);
-  margin: 0.55rem 0 0;
-}
 
 /* El buscador vive solo en la segunda fila de la grilla -ya no hace falta
    empujarlo al fondo con un margen automático (Tarea 8, ruling de la
@@ -221,11 +215,30 @@
    más cercano -- `position: relative` sigue haciendo falta acá (no es del
    truco de `margin-top: auto` que se sacó): sin él ese ancestro sería
    `.hero` (`fixed`), que la pondría en otro lado del documento en vez de
-   abrirse hacia arriba pegada al campo. */
+   abrirse hacia arriba pegada al campo.
+
+   Ronda 4 (ruling del coordinador): fila flex, no bloque. `.hero__dato` -el
+   dato de pozos/período, mudado acá desde `.hero__texto`- vive de
+   `.hero__buscador-campo` como el segundo ítem, y `justify-content:
+   space-between` lo empuja al borde derecho sin que `.hero__buscador-campo`
+   necesite saber que existe. Ninguno de los dos gana alto por el otro: la
+   fila mide lo que mide el más alto de sus ítems (el campo de búsqueda,
+   ~38px), y el dato -14px de fuente, una sola línea- entra adentro de eso
+   sin estirarlo. Es la razón de fondo del ruling: liberar el alto de esa
+   línea (más su margen) del bloque de texto, que era lo que le faltaba a
+   1280x800 para librar RAYOSO, SIN hacer crecer la banda -si creciera, la
+   escena se achicaría de nuevo y ese margen ganado se perdería-. Verificado
+   midiendo `.hero__buscador` antes y después: mismo alto en los cinco
+   viewports (ver el reporte de la Tarea 8). */
 .hero__buscador {
   position: relative;
   z-index: 1;
   grid-row: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px clamp(16px, 4vw, 40px);
   padding: 1.1rem clamp(20px, 5vw, 72px) 1.4rem;
   background: var(--papel);
   border-top: 1px solid var(--linea);
@@ -236,11 +249,34 @@
    `overflow: hidden` en `.hero` se la comía entera (confirmado con
    getBoundingClientRect(): la lista medía top=884 con el campo terminando en
    877, o sea 7px de alto útil visibles de sus hasta 260px). Se abre hacia
-   arriba sólo dentro del hero; `buscador.js` no se toca (X2). */
-.hero__buscador .buscador__resultados {
+   arriba sólo dentro del hero; `buscador.js` no se toca (X2). Cuelga de
+   `.hero__buscador-campo` y no de `.hero__buscador` (Ronda 4): ese es el
+   ancestro posicionado más cercano del campo real desde que `.hero__dato` es
+   hermano suyo y no hijo. */
+.hero__buscador-campo {
+  position: relative;
+  min-width: 0;
+}
+.hero__buscador-campo .buscador__resultados {
   top: auto;
   bottom: 100%;
   margin: 0 0 6px;
+}
+/* El dato -pozos totales y período, movido acá desde `.hero__texto` (Ronda
+   4, ruling del coordinador)- lee mejor al lado del campo que debajo de la
+   bajada: "estás buscando entre 85.609 pozos, con producción hasta 07/2026"
+   en vez de una cifra suelta. `white-space: nowrap` evita que se envuelva a
+   media palabra si el espacio aprieta -- a un ancho realmente angosto
+   `flex-wrap: wrap` de arriba ya lo manda a su propia línea entero, que es
+   el fallback correcto (Ronda 4, "puede ir debajo si ahí la banda tiene
+   lugar de sobra"). `margin: 0`: ya no apila debajo de la bajada, así que no
+   necesita el margen que lo separaba de ella. */
+.hero__dato {
+  font: 400 0.875rem/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--cobre);
+  margin: 0;
+  white-space: nowrap;
 }
 
 /* ---------- El dibujo en reposo, sin animación ---------- */

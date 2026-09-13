@@ -63,6 +63,35 @@ describe('crearHero', () => {
     expect(escena.querySelector('.hero__buscador')).toBeNull()
   })
 
+  // Ronda 4 (ruling del coordinador): el dato se mudó de .hero__texto a
+  // .hero__buscador -al lado del campo, no debajo de la bajada- para
+  // liberarle alto al bloque de texto sin comprimir la escala de
+  // profundidad (ver corte.js) ni esconder la bajada. jsdom no mide layout
+  // real (el "no crece de alto" y "mismo margen en los cinco viewports" se
+  // verificaron con CDP, ver el reporte), pero sí puede guardar que el dato
+  // no vuelva a vivir en .hero__texto por accidente.
+  it('el dato vive en .hero__buscador, no en .hero__texto (ronda 4)', () => {
+    crearHero(contenedor, { manifiesto: MANIFIESTO })
+    const texto = contenedor.querySelector('.hero__texto')
+    const buscador = contenedor.querySelector('.hero__buscador')
+    expect(texto.querySelector('.hero__dato')).toBeNull()
+    expect(buscador.querySelector('.hero__dato')).not.toBeNull()
+  })
+
+  // El campo real (`crearBuscador`) y el placeholder deshabilitado
+  // (`campoDeshabilitado`) reemplazan el innerHTML entero de lo que reciben
+  // (ver buscador.js) -si `montarBuscador` les diera `.hero__buscador`
+  // completo, el dato desaparecería la primera vez que se reemplaza. Por
+  // eso vive en `.hero__buscador-campo`, un hijo dedicado, y no en
+  // `.hero__buscador` directo.
+  it('montarBuscador no borra el dato al reemplazar el campo (cuidado de la ronda 4)', () => {
+    const hero = crearHero(contenedor, { manifiesto: MANIFIESTO })
+    hero.montarBuscador(FACETAS, () => {})
+    const dato = contenedor.querySelector('.hero__dato')
+    expect(dato).not.toBeNull()
+    expect(dato.textContent).toContain('85.609')
+  })
+
   it('dibuja el corte con los conteos del manifiesto', () => {
     crearHero(contenedor, { manifiesto: MANIFIESTO })
     expect(contenedor.querySelector('[data-formacion="VACA MUERTA"]').textContent)
