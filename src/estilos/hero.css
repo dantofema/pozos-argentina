@@ -204,6 +204,51 @@
   color: var(--apagado);
   margin: 0.45rem 0 0;
 }
+/* Ronda 5 (revisión): las cuatro rondas anteriores midieron el margen entre
+   el texto y RAYOSO, que vive DEBAJO de la línea de horizonte -pero los
+   balancines, la torre y la antorcha sobresalen HACIA ARRIBA, justo donde
+   vive el texto. Se optimizó contra el objeto equivocado: el margen daba
+   positivo mientras "un millón" (58ch de ancho) quedaba cruzado por las
+   patas de un balancín. Medido con getBoundingClientRect() real contra cada
+   `.balancin`/`.corte__torre`/`.corte__antorcha` en los cinco viewports:
+   58ch solapa en 1440x900 (-31,9px), 1280x800 (-61,5px) y 1200x800 (-26,8px,
+   con dos balancines); en 1920x1080 y 1280x900 no hay solape, sobra margen.
+
+   `@container` -contra `.hero__escena`, no el viewport (Ronda 3)- y no un
+   `@media`: lo que importa es el alto de LA ESCENA, no el del viewport
+   entero -son 1280x900 y 1440x900, viewports de 900px de alto ambos, los
+   que se comportan distinto entre sí porque su escala (ver --escala más
+   arriba) sí difiere-. 850px cae entre el alto de escena de 1920x1080
+   (970,8px, nunca colisiona) y el de 1280x900/1440x900 (790,8px, uno de los
+   dos sí): angosta la bajada en los dos por igual -1280x900 no lo
+   necesitaba, pero tampoco le molesta, y sigue sin colisión, verificado-, y
+   también en los dos de 690,8px (1280x800, 1200x800).
+
+   Angostar SOLO no alcanzó -y este es el hallazgo de esta ronda, no sólo el
+   ajuste-: cualquier `max-width` lo bastante angosto para librar el
+   balancín en 1200x800 (el peor caso, el balancín más cerca del margen)
+   agrega una línea entera al bloque (medido: de 4 a 5 líneas entre 52ch y
+   50ch), y esa línea de más le devuelve a RAYOSO el margen negativo que la
+   Ronda 4 había cerrado -de +10,7px a -12,1px en 1280x800, medido-. Probar
+   `padding-left` solo (sin angostar) tampoco alcanzó: mientras el bloque de
+   texto siga siendo MÁS ANCHO que el balancín (lo es, con cualquier ancho
+   razonable), correrlo hacia la izquierda no cambia el solape -el balancín
+   queda contenido adentro del bloque en los dos extremos, así que el
+   solape lo fija el ancho del balancín, no el borde del texto-. Hizo falta
+   la combinación: `max-width: 42ch` (angosta lo suficiente para que el
+   borde derecho del bloque quede antes del balancín, no sólo más chico) +
+   `padding-left: 6px` (recorre el bloque entero a la izquierda, alejándolo
+   más sin agregar ninguna línea) + recuperar el alto que la quinta línea
+   suma en otro lado del mismo bloque (`padding-top: 0`, `line-height: 1.35`
+   en vez de 1.5, `margin-top: 0.2rem` en vez de 0.45rem). Verificado con
+   `getBoundingClientRect()` real contra los cinco obstáculos (los tres
+   balancines, la torre, la antorcha) en los cinco viewports: cero
+   colisiones, y margen contra RAYOSO positivo en los cinco (ver el reporte
+   de la Tarea 8 para la tabla completa). */
+@container hero-escena (max-height: 850px) {
+  .hero__texto { padding-top: 0; padding-left: 6px; }
+  .hero__bajada { max-width: 42ch; line-height: 1.35; margin-top: 0.2rem; }
+}
 
 /* El buscador vive solo en la segunda fila de la grilla -ya no hace falta
    empujarlo al fondo con un margen automático (Tarea 8, ruling de la
@@ -217,31 +262,44 @@
    `.hero` (`fixed`), que la pondría en otro lado del documento en vez de
    abrirse hacia arriba pegada al campo.
 
-   Ronda 4 (ruling del coordinador): fila flex, no bloque. `.hero__dato` -el
-   dato de pozos/período, mudado acá desde `.hero__texto`- vive de
-   `.hero__buscador-campo` como el segundo ítem, y `justify-content:
-   space-between` lo empuja al borde derecho sin que `.hero__buscador-campo`
-   necesite saber que existe. Ninguno de los dos gana alto por el otro: la
-   fila mide lo que mide el más alto de sus ítems (el campo de búsqueda,
-   ~38px), y el dato -14px de fuente, una sola línea- entra adentro de eso
-   sin estirarlo. Es la razón de fondo del ruling: liberar el alto de esa
-   línea (más su margen) del bloque de texto, que era lo que le faltaba a
-   1280x800 para librar RAYOSO, SIN hacer crecer la banda -si creciera, la
-   escena se achicaría de nuevo y ese margen ganado se perdería-. Verificado
-   midiendo `.hero__buscador` antes y después: mismo alto en los cinco
-   viewports (ver el reporte de la Tarea 8). */
+   Ronda 4 (ruling del coordinador): `.hero__dato` -el dato de pozos/período,
+   mudado acá desde `.hero__texto`- vive al lado del campo, no debajo de la
+   bajada. Ninguno de los dos gana alto por el otro: la fila mide lo que mide
+   el más alto de sus ítems (el campo de búsqueda, ~38px), y el dato -14px de
+   fuente, una sola línea- entra adentro de eso sin estirarlo. Es la razón de
+   fondo del ruling: liberar el alto de esa línea (más su margen) del bloque
+   de texto, que era lo que le faltaba a 1280x800 para librar RAYOSO, SIN
+   hacer crecer la banda -si creciera, la escena se achicaría de nuevo y ese
+   margen ganado se perdería-. Verificado midiendo `.hero__buscador` antes y
+   después: mismo alto en los cinco viewports (ver el reporte de la Tarea 8).
+
+   Ronda 5 (revisión): la Ronda 4 ponía `display:flex` y `justify-content:
+   space-between` accá mismo, en la banda entera -así que a 1920x1080 el
+   hueco entre el campo y el dato media 995px, el 52% del ancho de la banda:
+   demasiado para que el ojo conecte "Buscar" con "85.609 pozos", que
+   terminaban leyendo como dos elementos sueltos, no como una frase-. El
+   `justify-content: space-between` sigue, pero ahora corre adentro de
+   `.hero__buscador-fila`, un envoltorio con `max-width` -el "techo del
+   hueco" que pidió la revisión-: por debajo de ese ancho el hueco se
+   reparte como antes, y por encima, sobra ancho de banda que queda vacío a
+   los costados en vez de estirar el hueco del medio. `.hero__buscador`
+   deja de ser el contenedor flex: vuelve a ser sólo la banda -fondo, borde,
+   padding-, con esta fila adentro. */
 .hero__buscador {
   position: relative;
   z-index: 1;
   grid-row: 2;
+  padding: 1.1rem clamp(20px, 5vw, 72px) 1.4rem;
+  background: var(--papel);
+  border-top: 1px solid var(--linea);
+}
+.hero__buscador-fila {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 4px clamp(16px, 4vw, 40px);
-  padding: 1.1rem clamp(20px, 5vw, 72px) 1.4rem;
-  background: var(--papel);
-  border-top: 1px solid var(--linea);
+  max-width: 900px;
 }
 /* La lista de `buscador.js` abre hacia abajo por default (así vive en
    `.barra`, en la herramienta, con toda la página debajo). Acá el campo está

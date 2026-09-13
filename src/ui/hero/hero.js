@@ -35,8 +35,10 @@ export function crearHero(contenedor, { manifiesto }) {
         </div>
       </div>
       <div class="hero__buscador">
-        <div class="hero__buscador-campo">${campoDeshabilitado(manifiesto.pozos)}</div>
-        <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
+        <div class="hero__buscador-fila">
+          <div class="hero__buscador-campo">${campoDeshabilitado(manifiesto.pozos)}</div>
+          <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
+        </div>
       </div>
     </div>`
 

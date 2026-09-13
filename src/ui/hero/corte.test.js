@@ -347,15 +347,65 @@ describe('construirCorte', () => {
     expect(cuenca.getAttribute('x')).toBe(leyenda.getAttribute('x'))
     // Encima de la leyenda de profundidad y cerca, como un mismo bloque: "de
     // qué cuenca es" antes que "cómo leer la escala", no dos rótulos sueltos
-    // a cualquier distancia entre sí.
+    // a cualquier distancia entre sí. El piso (>=18) guarda contra la
+    // regresión de la Ronda 4: 16 unidades locales de separación entre
+    // baselines dieron, medido con getBoundingClientRect() real, apenas
+    // 0,6 a 2,6px de aire en pantalla -- "tocándose, no leyendo como
+    // bloque" (revisión). No hay forma de que jsdom mida eso -no renderiza-,
+    // así que el piso de acá es deliberadamente más generoso que el mínimo
+    // que en su momento resultó insuficiente.
     const yCuenca = Number(cuenca.getAttribute('y'))
     const yLeyenda = Number(leyenda.getAttribute('y'))
     expect(yCuenca, 'la cuenca tiene que ir arriba de la leyenda de profundidad').toBeLessThan(yLeyenda)
-    expect(yLeyenda - yCuenca, 'las dos leyendas se separaron demasiado para leer como un bloque').toBeLessThanOrEqual(20)
+    const separacion = yLeyenda - yCuenca
+    expect(separacion, 'las dos leyendas se separaron demasiado para leer como un bloque').toBeLessThanOrEqual(24)
+    expect(separacion, 'las dos leyendas están tan cerca que van a tocarse en pantalla (Ronda 5)').toBeGreaterThanOrEqual(18)
+  })
+
+  // --- Revisión de la Tarea 8 (Ronda 5, Critical 2): el rincón se armó
+  // contra una resta fija sobre ALTO (y=ALTO-30) sin mirar qué más vive
+  // ahí -el rótulo de la última banda, Lajas, en y=b.y+20-. Cinco unidades
+  // de diferencia entre las dos baselines, "LAJAS" y "CUENCA NEUQUINA"
+  // pisándose en los cinco viewports. Y era invisible para los tests
+  // existentes: el de arriba compara cuenca contra leyenda, nunca contra el
+  // rótulo de banda que ya vivía en esa esquina. Este test cierra ese
+  // agujero verificando la coordenada real de la última banda de
+  // COLUMNA_NEUQUINA, no un número copiado de haberla medido una vez -si el
+  // día de mañana cambian los pesos de `bandas()` y la última banda deja de
+  // ser Lajas o cambia de alto, este test se sigue cumpliendo con la banda
+  // que sea.
+  it('el rótulo de la cuenca no se pisa con el de la última banda de la columna (revisión, Ronda 5, Critical 2)', () => {
+    const caja = montar()
+    const rotulos = [...caja.querySelectorAll('.corte__estrato .corte__rotulo')]
+    const ultimoRotulo = rotulos[rotulos.length - 1]
+    const cuenca = caja.querySelector('.corte__cuenca')
+    // Mismo cálculo que arma CUALQUIER rótulo de banda (`b.y + 20`, en
+    // construirCorte): la baseline del último rótulo cae ahí, no en `b.y`.
+    const finUltimoRotulo = Number(ultimoRotulo.getAttribute('y'))
+    const yCuenca = Number(cuenca.getAttribute('y'))
+    expect(yCuenca, 'la cuenca tiene que ir abajo del rótulo de la última banda').toBeGreaterThan(finUltimoRotulo)
+    const separacion = yCuenca - finUltimoRotulo
+    expect(separacion, 'el rótulo de la cuenca se pisa con el de la última banda (Ronda 5, Critical 2)').toBeGreaterThanOrEqual(8)
   })
 
   it('el rótulo de la cuenca vive dentro de .corte__escala: se esconde y se hunde con la leyenda sin reglas propias', () => {
     const caja = montar()
     expect(caja.querySelector('.corte__escala .corte__cuenca')).not.toBeNull()
+  })
+
+  // Revisión de la Tarea 8 (Ronda 5): "el rótulo de cada banda... no se
+  // solapen" -pedido explícito del revisor-. Con nueve bandas de 44 a 66
+  // unidades de alto y un rótulo de 13px, ninguna combinación de pesos
+  // razonable las hace chocar hoy, pero es exactamente el tipo de cosa que
+  // "hoy no pasa" y nadie vuelve a mirar: si el día de mañana `bandas()`
+  // reparte pesos distintos (una banda mucho más fina, por ejemplo), este
+  // test es el que se entera primero.
+  it('los rótulos de bandas consecutivas no se pisan entre sí', () => {
+    const rotulos = [...montar().querySelectorAll('.corte__estrato .corte__rotulo')]
+      .map((r) => Number(r.getAttribute('y')))
+    for (let i = 1; i < rotulos.length; i++) {
+      expect(rotulos[i] - rotulos[i - 1], `rótulo ${i} se pisa con el rótulo ${i - 1}`)
+        .toBeGreaterThanOrEqual(20)
+    }
   })
 })

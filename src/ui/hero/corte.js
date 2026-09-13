@@ -231,6 +231,23 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   // existe. Volver a subirlo sin que la banda vuelva a superponerse sería
   // resolver un problema que ya no existe.
   const MARGEN_LEYENDAS = 56
+
+  // El rincón de las dos leyendas (más abajo, corte__cuenca/corte__leyenda)
+  // se ancla contra este número, no contra una resta fija sobre ALTO -el bug
+  // que nombró la revisión (Ronda 5): una coordenada que no sabe dónde
+  // termina su vecino de arriba, acá la última banda (Lajas)-. Misma cuenta
+  // que arma el rótulo de CUALQUIER estrato (`b.y + 20`, unas líneas más
+  // arriba), aplicada a la última banda de `capas`: si el día de mañana los
+  // pesos de `bandas()` cambian y Lajas termina en otro lugar, este bloque
+  // la sigue en vez de quedar con un número copiado de haberla medido una
+  // vez. Los dos márgenes que siguen (a la última banda, y entre las dos
+  // leyendas entre sí) están medidos con getBoundingClientRect() real, no
+  // calculados a partir de la métrica de la fuente -- ver el reporte.
+  const ultimaBanda = capas[capas.length - 1]
+  const finRotuloUltimaBanda = ultimaBanda.y + 20
+  const yCuenca = finRotuloUltimaBanda + 10
+  const yLeyenda = yCuenca + 20
+
   const escala = [0, 1000, 2000, 3000].map((m) => {
     const y = HORIZONTE + (m / 3000) * (ALTO - MARGEN_LEYENDAS - HORIZONTE)
     return `
@@ -294,10 +311,30 @@ export function construirCorte({ formaciones, pozos, periodo }) {
          donde el dibujo (.hero__dibujo, hero.css) abarca sólo las
          primeras dos, nunca la del buscador, así que esa banda ya no se
          superpone con NADA de este SVG -y=ALTO ahora sí es, de verdad, el
-         borde que nunca se tapa-. Por eso el bloque vuelve a y=ALTO-30/
-         ALTO-14, el valor original. -->
-    <text class="corte__cuenca" x="20" y="${ALTO - 30}">CUENCA NEUQUINA</text>
-    <text class="corte__leyenda" x="20" y="${ALTO - 14}">PROFUNDIDAD (m) · ESQUEMÁTICO</text>
+         borde que nunca se tapa-.
+
+         Pero "y=ALTO-30/y=ALTO-14" (el valor al que volvió esa ronda) resultó
+         ser el MISMO bug que el coordinador nombró en otro lado del dibujo,
+         sólo que más difícil de ver: una coordenada fija, restada de ALTO, que
+         no sabe dónde termina el vecino de arriba -acá, la última banda
+         (Lajas)-. Lajas no siempre termina en el mismo lugar: bandas()
+         reparte el subsuelo en pesos relativos, así que su rótulo (calculado
+         como CUALQUIER rótulo de banda, b.y + 20, más abajo) cae en un y
+         que depende de esos pesos, hoy ~685. y=ALTO-30=690 le daba sólo CINCO
+         unidades de margen -"LAJAS" y "CUENCA NEUQUINA" se pisaban en los
+         CINCO viewports, confirmado con getBoundingClientRect() real, -10 a
+         -16px de solape-, y encima era una regresión invisible para los tests
+         de la ronda 2, que comparaban la cuenca contra la leyenda de
+         profundidad pero nunca contra el rótulo que ya vivía ahí.
+
+         El arreglo: anclar las dos leyendas contra el y REAL del rótulo de
+         la última banda (finRotuloUltimaBanda, calculado más abajo con la
+         misma cuenta que arma cada rótulo de estrato) y no contra una resta
+         fija sobre ALTO. Si algún día los pesos de bandas() cambian y Lajas
+         termina en otro lado, este bloque la sigue -es la coordenada del
+         vecino, no un número copiado de haberla medido una vez-. -->
+    <text class="corte__cuenca" x="20" y="${yCuenca}">CUENCA NEUQUINA</text>
+    <text class="corte__leyenda" x="20" y="${yLeyenda}">PROFUNDIDAD (m) · ESQUEMÁTICO</text>
   </g>
 
   <line class="corte__horizonte" x1="0" y1="${HORIZONTE}" x2="${ANCHO}" y2="${HORIZONTE}" />
