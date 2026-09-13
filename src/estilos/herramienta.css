@@ -44,7 +44,20 @@
   line-height: 1;
   cursor: pointer;
 }
-.buscador__limpiar:hover { background: #eef1f3; color: var(--tinta); }
+/* Los tres `:hover` de esta hoja usaban literales hexadecimales -#eef1f3,
+   #f5f7f8- elegidos mirando el tema claro (revisión final, Critical 3). Un
+   literal no se entera de que existe un segundo tema: en cianotipo pintaban
+   una caja CLARA bajo texto CLARO y el contraste caía a 1,04:1 y 1,10:1, o
+   sea texto invisible.
+
+   El reemplazo es `var(--papel)`: la caja al pasar el mouse se hunde en la
+   página en vez de flotar sobre ella. No es `var(--linea)` -el candidato
+   obvio, y más visible- porque estas cajas llevan adentro texto en --cobre y
+   en --apagado (el tipo de faceta, la cuenca, la cantidad), y sobre --linea
+   esos dos caen a 3,87:1 y 3,98:1 en papel: se arreglaba el fondo y se rompía
+   el contenido. Sobre --papel los cuatro colores de texto de la paleta pasan
+   AA en los dos temas, que es justo lo que verifica el test. */
+.buscador__limpiar:hover { background: var(--papel); color: var(--tinta); }
 
 .buscador__tipo-sel {
   padding: 9px 10px;
@@ -67,7 +80,11 @@
   width: min(520px, 92vw);
   border: 1px solid var(--linea);
   border-radius: 3px;
-  box-shadow: 0 8px 24px -12px rgba(19, 26, 32, 0.4);
+  /* La sombra sale de un token y no de un rgba literal (minor de la revisión
+     final): el literal era tinta del tema claro, así que en cianotipo pintaba
+     negro sobre un fondo casi negro -invisible-. Cada tema declara la suya en
+     tokens.css. */
+  box-shadow: var(--sombra);
 }
 .buscador__opcion {
   display: grid;
@@ -84,7 +101,7 @@
   text-align: left;
   cursor: pointer;
 }
-.buscador__opcion:hover { background: #f5f7f8; }
+.buscador__opcion:hover { background: var(--papel); }
 .buscador__tipo { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cobre); }
 .buscador__cuenca {
   font-size: 11.5px;
@@ -106,7 +123,7 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.herramientas__boton:hover { background: #f5f7f8; }
+.herramientas__boton:hover { background: var(--papel); }
 .herramientas__boton:focus-visible { outline: 2px solid var(--cobre); outline-offset: 1px; }
 .herramientas__boton--activo {
   background: var(--tinta);
@@ -169,7 +186,11 @@
   border: 0;
   border-radius: 3px;
   background: var(--cobre);
-  color: #fff;
+  /* `var(--papel)` y no `#fff` (revisión final, Critical 3): el blanco puro
+     sobre el cobre del tema oscuro (#E8853F) da 2,67:1, por debajo de AA, y
+     el spec §5 promete 6,57:1 para este CTA -que es exactamente lo que da con
+     el token-. En papel da 5,07:1, también el número del spec. */
+  color: var(--papel);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
