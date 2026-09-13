@@ -518,3 +518,37 @@ describe('el cielo no depende del ancho del viewport (revisión final, Critical 
     }
   })
 })
+
+// --- Revisión final, Critical 2: `.hero__texto` es un bloque de ancho
+// completo, así que cualquier fondo que declare se pinta de borde a borde del
+// hero -1200 a 1920px- y no detrás del texto. El degradé que tenía tapaba de
+// tres a cinco objetos de superficie en cada viewport y cortaba los
+// balancines y la antorcha por la mitad. Si algún día vuelve a hacer falta un
+// respaldo, tiene que ir acotado al ancho del texto.
+describe('el texto no pinta sobre el dibujo (revisión final, Critical 2)', () => {
+  const base = import.meta.url
+  const hoja = readFileSync(new URL('../../estilos/hero.css', base), 'utf-8')
+
+  function cuerpoDeRegla(css, selector) {
+    // El bloque de una regla, saltando los comentarios que la preceden.
+    const i = css.indexOf(`\n${selector} {`)
+    if (i < 0) return null
+    const apertura = css.indexOf('{', i)
+    return css.slice(apertura + 1, css.indexOf('}', apertura))
+  }
+
+  it('.hero__texto no declara ningún fondo, o lo acota a fit-content', () => {
+    const cuerpo = cuerpoDeRegla(hoja, '.hero__texto')
+    expect(cuerpo, 'no se encontró la regla de .hero__texto').not.toBeNull()
+    // Sólo declaraciones: los comentarios de adentro del bloque nombran el
+    // degradé que se sacó, y nombrarlo no es declararlo.
+    const sinComentarios = cuerpo.replace(/\/\*[\s\S]*?\*\//g, '')
+    const pintaFondo = /(^|;)\s*background(-image|-color)?\s*:/.test(sinComentarios)
+    if (pintaFondo) {
+      expect(sinComentarios, 'un fondo en .hero__texto se pinta de borde a borde del hero: acotalo con width: fit-content')
+        .toMatch(/width:\s*fit-content/)
+    } else {
+      expect(pintaFondo).toBe(false)
+    }
+  })
+})

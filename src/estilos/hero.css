@@ -127,35 +127,28 @@
   position: relative;
   z-index: 1;
   padding: clamp(4px, 1cqh, 16px) clamp(20px, 5cqw, 72px) 0;
-  /* Un respaldo detrás de la última línea (el dato), no una tarjeta: sin él,
-     a 1440x900 (1,6:1, el extremo angosto de lo "típico") el bloque de texto
-     alcanza el horizonte y el dato cae encima de la estepa y la base de un
-     balancín.
+  /* Acá vivía un degradé de papel semiopaco -un respaldo detrás de la última
+     línea- y se fue entero (revisión final, Critical 2). Dos razones, y la
+     segunda es la que lo condena:
 
-     La primera versión de este degradé iba del 0% al 68% de ALTO DE LA CAJA
-     (`.hero__texto` es de alto variable, 330-411px según copy/formaciones/
-     viewport). Con la caja real a 411px eso ponía papel semiopaco bastante
-     más abajo de lo que hacía falta -tapaba a RAYOSO, la banda de la
-     superficie, con casi la mitad de opacidad todavía encima (revisión,
-     Important 3: luminancia 143 contra 86-94 de QUINTUCO/LOTENA sin tapar,
-     35% menos contraste). RAYOSO es del dibujo, no del texto: el spec dice
-     que los rótulos de formación "se leen".
+     1. Ya no hace falta. Existía porque el bloque de texto alcanzaba el
+        horizonte y el dato caía sobre la estepa; el dato se mudó a la banda
+        del buscador (Tarea 8) y desde C1 el texto libra al rótulo de RAYOSO
+        por entre 34 y 240px en los siete viewports reales, y por entre 54 y
+        269px si la webfont no llegó y se lee con la pila de respaldo
+        (medido: Georgia compone MÁS bajo que Source Serif, así que el caso
+        sin webfont es el holgado, no el apretado).
 
-     La segunda versión (alto fijo de 48px, `padding-bottom` de 28px)
-     TAMPOCO alcanzaba: medido con getBBox() a 1440x900, el contenido (sin
-     padding) termina en el local y=264 y RAYOSO arranca en y=266,4 -- sólo
-     2,4 unidades locales (~3px en pantalla) de margen real. Cualquier
-     `padding-bottom` mayor a eso ya mete la caja en el rango de RAYOSO. Por
-     eso ahora `padding-bottom` es CERO: el borde inferior de la caja
-     coincide con el borde del contenido, sin colchón que se coma el margen
-     -de por sí angosto- antes de RAYOSO. El degradé (alto fijo, anclado al
-     borde inferior) pasa a vivir DENTRO de esa última línea en vez de
-     debajo: opaco en el pie, donde está el dato, y transparente subiendo
-     hacia la bajada -que no lo necesita, ya está sobre cielo vacío-. */
-  background-image: linear-gradient(to bottom, transparent, var(--papel) 70%);
-  background-repeat: no-repeat;
-  background-position: bottom;
-  background-size: 100% 22px;
+     2. Hacía daño en todos. `.hero__texto` es un bloque de ancho completo,
+        así que `background-size: 100% 22px` pintaba una franja de papel
+        semiopaco de 1200 a 1920px de ancho SOBRE el dibujo, no sólo detrás
+        del texto: cruzaba de tres a cinco objetos de superficie en cada
+        viewport y cortaba por la mitad los balancines y la antorcha. El
+        degradé tapaba el dibujo para proteger un texto que hoy no lo toca.
+
+     Si algún día el texto volviera a acercarse al dibujo, el respaldo tiene
+     que ir con `width: fit-content` -o directamente en los elementos de
+     texto- para que no vuelva a pintar sobre el vacío. */
 }
 /* La medida va POR ELEMENTO y no en el bloque. Un `max-width: 46ch` en el
    contenedor se calcula con SU tamaño de fuente (16px), o sea unos 368px, y
