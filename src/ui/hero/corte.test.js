@@ -208,7 +208,10 @@ describe('construirCorte', () => {
     const caja = montar()
     for (const b of caja.querySelectorAll('.balancin')) {
       expect(b.querySelector('.balancin__manivela')).not.toBeNull()
-      const contrapeso = b.querySelector('.balancin__contrapeso')
+      // La posición del eje vive en `.balancin__eje`, el envoltorio: el grupo
+      // que gira no puede llevar atributo `transform`, porque la animación
+      // CSS del Acto V lo reemplazaría en vez de componerse con él.
+      const contrapeso = b.querySelector('.balancin__eje')
       const [, , ty] = contrapeso.getAttribute('transform').match(/translate\(([-\d.]+)[ ,]([-\d.]+)\)/)
       // La punta de la viga está en y=-58; la base, en y=0. Cerca de la base
       // es "más cerca de 0 que del punto medio hacia la punta".
@@ -645,5 +648,69 @@ describe('el Acto II y el Acto III son dos actos, no una cascada (revisión fina
     expect(Number(brillo.getAttribute('x'))).toBeLessThan(0)
     const keyframe = /@keyframes corte-barrer \{[\s\S]*?\n\}/.exec(hoja)[0]
     expect(keyframe, 'el brillo no se mueve: sigue siendo un pulso de opacidad').toContain('translateX')
+  })
+})
+
+// --- Revisión final, defecto encontrado al verificar (no estaba en los
+// hallazgos): en SVG el atributo `transform` es una propiedad de presentación,
+// la declaración de MENOR prioridad que existe, así que una animación CSS de
+// `transform` no se compone con él: lo REEMPLAZA. Medido en Chrome por CDP:
+//  - durante los 560ms del Acto IV, los cinco objetos de superficie saltaban
+//    al (0,0) del lienzo y volvían a su lugar de un salto al terminar;
+//  - en el reposo, el contrapeso no giraba: se deslizaba 36 unidades hacia el
+//    poste (44px en pantalla a 1440x789) y pegaba la vuelta cada ciclo, que es
+//    exactamente el "temblequeo" que el Acto V nombra como lo que hay que
+//    evitar.
+// La separación es estructural: la posición en el grupo de afuera, la
+// animación en el de adentro. Este test la vigila.
+describe('posición y movimiento no comparten elemento (revisión final)', () => {
+  const base = import.meta.url
+  const hoja = readFileSync(new URL('../../estilos/hero.css', base), 'utf-8')
+
+  /** Las clases que la hoja anima con `transform` en cualquier acto. */
+  function clasesAnimadas(css) {
+    const limpio = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    const conTransform = new Set()
+    for (const m of limpio.matchAll(/@keyframes ([\w-]+) \{([\s\S]*?)\n?\}/g)) {
+      if (/transform\s*:/.test(m[2])) conTransform.add(m[1])
+    }
+    const clases = new Set()
+    for (const m of limpio.matchAll(/([^{}]+)\{([^{}]*animation:\s*([\w-]+)[^}]*)\}/g)) {
+      if (!conTransform.has(m[3])) continue
+      // Sólo el SUJETO de cada selector -el último compuesto-: en
+      // `.hero--reposo .corte__antorcha .antorcha__llama` la que se anima es
+      // la llama, y el ancestro que la ubica puede llevar atributo sin
+      // problema, que es justo la estructura que este test defiende.
+      for (const selector of m[1].split(',')) {
+        const sujeto = selector.trim().split(/\s+/).at(-1)
+        for (const c of sujeto.matchAll(/\.([\w-]+)/g)) clases.add(c[1])
+      }
+    }
+    return clases
+  }
+
+  it('ningún elemento con `transform` de atributo lleva encima una animación de transform', () => {
+    const animadas = clasesAnimadas(hoja)
+    expect(animadas.size, 'no se detectó ninguna animación de transform').toBeGreaterThan(0)
+
+    const conflictos = []
+    for (const el of montar().querySelectorAll('[transform]')) {
+      for (const clase of el.classList) {
+        if (animadas.has(clase)) conflictos.push(`${clase} lleva transform="${el.getAttribute('transform')}"`)
+      }
+    }
+    expect(conflictos, `el atributo transform de estos elementos lo pisa una animación CSS, ` +
+      `así que van a saltar al origen del lienzo mientras la animación corre:\n${conflictos.join('\n')}`)
+      .toEqual([])
+  })
+
+  it('el contrapeso gira sobre el eje de su manivela y no sobre el centro de su caja', () => {
+    // Con `transform-box: fill-box` el origen se mide desde la esquina
+    // superior izquierda de la caja del grupo; el eje es el (0,0) local, o sea
+    // el radio del contrapeso más el desplazamiento del muñón. El número sale
+    // de corte.js, donde vive la geometría, y no de la hoja.
+    const contrapeso = montar().querySelector('.balancin__contrapeso')
+    expect(contrapeso.style.getPropertyValue('--pivote').trim()).toBe('15px 21px')
+    expect(hoja).toMatch(/\.balancin__contrapeso \{ transform-origin: var\(--pivote/)
   })
 })

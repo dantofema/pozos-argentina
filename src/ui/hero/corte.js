@@ -75,6 +75,18 @@ const ANTORCHA_X = 1125
  */
 const CABEZA_CABLE_X = 57
 
+/**
+ * La manivela del contrapeso: el muñón (`dx`,`dy`) respecto del eje, y el radio
+ * del contrapeso. De acá sale también el pivote de giro que el Acto V necesita
+ * (`--pivote`, abajo): con `transform-box: fill-box` el origen se mide desde la
+ * esquina superior izquierda de la caja del grupo, y el eje -el (0,0) local-
+ * cae a `r − dx` y `r − dy` de esa esquina. Escrito así y no como dos números
+ * sueltos en la hoja de estilos porque es geometría del dibujo: si el muñón se
+ * mueve, el pivote lo sigue.
+ */
+const MANIVELA = { dx: -4, dy: -10, r: 11 }
+const PIVOTE = `${MANIVELA.r - MANIVELA.dx}px ${MANIVELA.r - MANIVELA.dy}px`
+
 /** El ancho del brillo que barre la roca madre en el Acto III, en unidades
  * locales: 160 de 1900, o sea una banda fina y no un telón. */
 const ANCHO_BRILLO = 160
@@ -167,9 +179,11 @@ function estepa() {
 function unaTorre(x) {
   return `
     <g class="corte__torre" transform="translate(${x} ${GEOMETRIA.HORIZONTE})">
-      <path d="M-20 0L-8 -150M20 0L8 -150M-8 -150L8 -150" />
-      <path d="M-17 -30h34M-15 -60h30M-13 -90h26M-11 -120h22" />
-      <path d="M-20 0h40" />
+      <g class="corte__cuerpo">
+        <path d="M-20 0L-8 -150M20 0L8 -150M-8 -150L8 -150" />
+        <path d="M-17 -30h34M-15 -60h30M-13 -90h26M-11 -120h22" />
+        <path d="M-20 0h40" />
+      </g>
     </g>`
 }
 
@@ -181,8 +195,10 @@ function unaTorre(x) {
 function unaAntorcha(x) {
   return `
     <g class="corte__antorcha" transform="translate(${x} ${GEOMETRIA.HORIZONTE})">
-      <line class="antorcha__mastil" x1="0" y1="0" x2="0" y2="-92" />
-      <path class="antorcha__llama" d="M0 -92C-9 -102 -7 -115 -1 -126C4 -117 10 -106 6 -96C4 -93 2 -92 0 -92Z" />
+      <g class="corte__cuerpo">
+        <line class="antorcha__mastil" x1="0" y1="0" x2="0" y2="-92" />
+        <path class="antorcha__llama" d="M0 -92C-9 -102 -7 -115 -1 -126C4 -117 10 -106 6 -96C4 -93 2 -92 0 -92Z" />
+      </g>
     </g>`
 }
 
@@ -207,22 +223,41 @@ function unaAntorcha(x) {
  * Cabeza y cable viven dentro de `balancin__viga` a propósito: cuando la
  * Tarea 6 haga cabecear la viga, tienen que acompañarla. Afuera del grupo
  * quedarían quietos mientras la viga se mueve.
+ *
+ * Dos envoltorios que NO son decorativos (revisión final, defecto encontrado
+ * al verificar): en SVG, el atributo `transform` es una propiedad de
+ * presentación, o sea la declaración de menor prioridad que existe, así que
+ * CUALQUIER regla CSS que anime `transform` no se compone con él: lo
+ * REEMPLAZA. Medido: durante el Acto IV los tres balancines, la torre y la
+ * antorcha saltaban al (0,0) del lienzo mientras `corte-subir` corría, y
+ * volvían a su lugar de un salto al terminar; y en el reposo el contrapeso no
+ * giraba, se deslizaba 36 unidades hacia el poste y pegaba la vuelta, que es
+ * justo el "temblequeo" que el spec nombra como lo que hay que evitar.
+ *
+ * La posición vive en el grupo de afuera (`.balancin`, `.corte__torre`,
+ * `.corte__antorcha`, `.balancin__eje`) y la animación en el de adentro
+ * (`.corte__cuerpo`, `.balancin__contrapeso`), que no tiene atributo que
+ * pisar. Con eso las dos se componen en vez de competir.
  */
 function unBalancin({ x, escala, periodo }, i) {
   const base = GEOMETRIA.HORIZONTE
   return `
     <g class="balancin" style="--periodo:${periodo}" transform="translate(${x} ${base}) scale(${escala})">
-      <path class="balancin__base" d="M-42 0h84" />
-      <path class="balancin__torre" d="M-16 0l16-58 16 58" />
-      <g class="balancin__viga">
-        <path d="M-52 -58h104" />
-        <path class="balancin__cabeza" d="M36 -58L66 -58A30 30 0 0 1 36 -28Z" />
-        <line class="balancin__cable" x1="${CABEZA_CABLE_X}" y1="-37" x2="${CABEZA_CABLE_X}" y2="0" />
-      </g>
-      <path class="balancin__biela" d="M-52 -58 -40 -18" />
-      <g class="balancin__contrapeso" transform="translate(-36 -8)">
-        <path class="balancin__manivela" d="M0 0 -4 -10" />
-        <circle cx="-4" cy="-10" r="11" />
+      <g class="corte__cuerpo">
+        <path class="balancin__base" d="M-42 0h84" />
+        <path class="balancin__torre" d="M-16 0l16-58 16 58" />
+        <g class="balancin__viga">
+          <path d="M-52 -58h104" />
+          <path class="balancin__cabeza" d="M36 -58L66 -58A30 30 0 0 1 36 -28Z" />
+          <line class="balancin__cable" x1="${CABEZA_CABLE_X}" y1="-37" x2="${CABEZA_CABLE_X}" y2="0" />
+        </g>
+        <path class="balancin__biela" d="M-52 -58 -40 -18" />
+        <g class="balancin__eje" transform="translate(-36 -8)">
+          <g class="balancin__contrapeso" style="--pivote:${PIVOTE}">
+            <path class="balancin__manivela" d="M0 0 ${MANIVELA.dx} ${MANIVELA.dy}" />
+            <circle cx="${MANIVELA.dx}" cy="${MANIVELA.dy}" r="${MANIVELA.r}" />
+          </g>
+        </g>
       </g>
     </g>`
 }

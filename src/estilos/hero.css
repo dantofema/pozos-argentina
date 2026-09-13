@@ -416,7 +416,14 @@
    sin esto los pivotes caen en la esquina del lienzo. */
 .balancin__viga, .balancin__contrapeso { transform-box: fill-box; }
 .balancin__viga { transform-origin: center; }
-.balancin__contrapeso { transform-origin: center; }
+/* El contrapeso gira sobre el EJE de su manivela, no sobre el centro de su
+   propia caja (revisión final, defecto encontrado al verificar). El eje es el
+   (0,0) local del grupo, y con `fill-box` el origen se mide desde la esquina
+   superior izquierda de la caja: `--pivote` trae esa distancia calculada en
+   `corte.js`, donde vive la geometría de la manivela. Sobre el centro de la
+   caja, el contrapeso giraría sobre sí mismo en el aire; sobre el eje,
+   describe la órbita de una manivela, que es lo que lee como máquina. */
+.balancin__contrapeso { transform-origin: var(--pivote, center); }
 
 /* ---------- Acto I: el instrumento se traza ---------- */
 /* Largos fijos y no getTotalLength(): el viewBox es conocido, y así el CSS no
@@ -496,8 +503,19 @@
 /* El spec: "los balancines y la torre suben últimos." La antorcha no está
    nombrada, pero dejarla quieta y presente desde el cuadro cero mientras
    todo lo demás entra se ve roto, no intencional -- así que sube con la
-   torre acá y titila recién en el Acto V, como ya estaba. */
-.hero--entrando .balancin, .hero--entrando .corte__torre, .hero--entrando .corte__antorcha {
+   torre acá y titila recién en el Acto V, como ya estaba.
+
+   `.corte__cuerpo` y no `.balancin`/`.corte__torre`/`.corte__antorcha`
+   (revisión final, defecto encontrado al verificar): esos tres llevan su
+   posición en el atributo `transform` del SVG, que es una propiedad de
+   presentación y por lo tanto la declaración de MENOR prioridad que existe.
+   Una animación CSS de `transform` no se compone con ella: la reemplaza.
+   Medido: durante los 560ms de este acto los cinco objetos de superficie
+   saltaban al (0,0) del lienzo -se los veía apilados en la esquina superior
+   izquierda- y volvían a su lugar de un salto al terminar. `.corte__cuerpo`
+   es el grupo de adentro, sin atributo que pisar, así que la posición y el
+   movimiento se componen. */
+.hero--entrando .corte__cuerpo {
   animation: corte-subir 560ms cubic-bezier(.2,.7,.3,1) 3800ms both;
 }
 
