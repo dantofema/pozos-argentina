@@ -23,15 +23,17 @@ export function crearHero(contenedor, { manifiesto }) {
 
   contenedor.innerHTML = `
     <div class="hero">
-      <div class="hero__dibujo">${construirCorte({
-        formaciones: manifiesto.formaciones,
-        pozos: manifiesto.pozos,
-        periodo: manifiesto.ultimoPeriodo,
-      })}</div>
-      <div class="hero__texto">
-        <h1 class="hero__titulo">${TITULO}</h1>
-        <p class="hero__bajada">${BAJADA}</p>
-        <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
+      <div class="hero__escena">
+        <div class="hero__dibujo">${construirCorte({
+          formaciones: manifiesto.formaciones,
+          pozos: manifiesto.pozos,
+          periodo: manifiesto.ultimoPeriodo,
+        })}</div>
+        <div class="hero__texto">
+          <h1 class="hero__titulo">${TITULO}</h1>
+          <p class="hero__bajada">${BAJADA}</p>
+          <p class="hero__dato">${manifiesto.pozos.toLocaleString('es-AR')} pozos · hasta ${periodoLegible(manifiesto.ultimoPeriodo)}</p>
+        </div>
       </div>
       <div class="hero__buscador">${campoDeshabilitado(manifiesto.pozos)}</div>
     </div>`

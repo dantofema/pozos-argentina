@@ -8,25 +8,74 @@
    atribución se veían A TRAVÉS del corte -- visible en la captura del hero
    en reposo. 2000 deja margen sobre el máximo que Leaflet declara, no sólo
    lo supera por poco. */
+/* Revisión de la Tarea 8 (ruling del coordinador, tercera ronda): antes era
+   `display: flex; flex-direction: column`, con `.hero__dibujo` sacado del
+   flujo (`position: absolute; inset: 0`) para que llenara el hero ENTERO,
+   por detrás del texto Y del buscador -- así fue como la banda opaca del
+   buscador terminó tapando la esquina inferior izquierda del dibujo
+   (hallazgo 2 de la ronda anterior: la leyenda de profundidad y el rótulo
+   de cuenca recién reubicado, invisibles los dos, y hubo que comprimir el
+   recorrido de la escala con un MARGEN_LEYENDAS de 150 para esquivar una
+   banda cuyo alto real el SVG no tiene forma de conocer).
+
+   `display: grid` con dos filas ataca la causa: `.hero__escena` (envuelve el
+   dibujo y el texto, hero.js) ocupa la primera fila (`1fr`, todo lo que no
+   es buscador), y `.hero__buscador` vive solo en la segunda (`auto`). El
+   alto de la escena lo resuelve el motor de grillas -el total menos lo que
+   mide la fila `auto` del buscador-, no una constante que haya que
+   mantener sincronizada a mano con el alto real de esa caja, que cambia con
+   la tipografía o el copy. Con esto el dibujo ya NO se extiende detrás del
+   buscador: nada de lo que se dibuje ahí abajo puede quedar tapado, así que
+   MARGEN_LEYENDAS vuelve a bajar (ver corte.js). */
 .hero {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr auto;
   background: var(--papel);
   overflow: hidden;
 }
 
-/* El dibujo llena el hero ENTERO, detrás del texto -- no es una fila del
-   layout, es un fondo. La razón es aritmética, no estética: el corte mide
-   1200x720 (1,67:1) y el aspecto de un viewport típico va de 1,60 a 1,78,
-   casi el mismo; llenando el hero completo el recorte de `slice` es de 45
-   unidades de cielo o ninguno, y los rótulos se ven a entre 15 y 21 píxeles.
-   Metido en una fila que compartía el alto con el texto (versión anterior de
-   esta hoja) el mismo dibujo quedaba a 733x440 con rótulos de 6 a 8 píxeles
-   y márgenes vacíos a los costados: leía como una imagen pegada en un
-   documento, no como la ilustración del hero.
+/* `.hero__escena` es el contenedor de tamaño (`container-type: size`) del
+   que `--escala` (abajo) y el padding de `.hero__texto` toman `cqh`/`cqw`,
+   y no `.hero` ni el viewport (`vh`/`vw`): la fila que ocupa (`1fr`) es
+   exactamente "todo lo que no es la banda del buscador", así que su alto
+   real -y no el del viewport completo- es lo que de verdad predice dónde
+   cae el horizonte. Antes de este cambio el texto usaba `vh`, calibrado
+   asumiendo que el dibujo llenaba el viewport entero; con el dibujo ahora
+   más bajo (por la banda del buscador, que antes no restaba nada), esa
+   calibración quedó desincronizada -medido: el dato ("85.609 pozos...")
+   caía adentro de la banda RAYOSO en varios viewports, la textura del
+   estrato cruzándolo- porque `vh` no tiene forma de saber que hay una banda
+   que restar, igual que `MARGEN_LEYENDAS` (corte.js) no la tenía. `cqh` sí:
+   mide el alto real de la fila, que YA excluye al buscador por construcción
+   de la grilla -aunque, como se ve más abajo, no alcanzó sola: hizo falta
+   `--escala` para seguirle el paso a la geometría real de `slice`.
+   `position: relative` es el ancestro posicionado de `.hero__dibujo`
+   (`position: absolute; inset: 0` más abajo), acotado a esta celda y no a
+   `.hero` entero -que incluiría la fila del buscador de nuevo-. */
+.hero__escena {
+  position: relative;
+  grid-row: 1;
+  container-type: size;
+  container-name: hero-escena;
+  /* La escala real del corte (corte.js, GEOMETRIA: ANCHO=1200, ALTO=720):
+     cuántos píxeles de pantalla ocupa una unidad local del SVG -- la MISMA
+     cuenta que `preserveAspectRatio="xMinYMax slice"` usa para decidir
+     cuánto recorta. RAYOSO y el resto del subsuelo escalan con este número
+     (no con `cqh` solo: ver el título/la bajada más abajo), así que el
+     texto que se le superpone tiene que escalar con el mismo número para
+     seguirle el paso. */
+  --escala: max(calc(100cqw / 1200), calc(100cqh / 720));
+}
+
+/* El dibujo llena `.hero__escena` entera, detrás del texto -- no es una
+   fila propia del layout, es un fondo. La razón es aritmética, no
+   estética: el corte mide 1200x720 (1,67:1) y el aspecto de un viewport
+   típico va de 1,60 a 1,78, casi el mismo; llenando la escena completa el
+   recorte de `slice` es de 45 unidades de cielo o ninguno, y los rótulos se
+   ven a entre 15 y 21 píxeles.
 
    El texto se apoya sobre el cielo, que está vacío por diseño (el dibujo no
    tiene nada arriba del horizonte salvo la estepa, los balancines, la
@@ -44,7 +93,7 @@
 .hero__texto {
   position: relative;
   z-index: 1;
-  padding: clamp(16px, 4vh, 44px) clamp(20px, 5vw, 72px) 0;
+  padding: clamp(4px, 1cqh, 16px) clamp(20px, 5cqw, 72px) 0;
   /* Un respaldo detrás de la última línea (el dato), no una tarjeta: sin él,
      a 1440x900 (1,6:1, el extremo angosto de lo "típico") el bloque de texto
      alcanza el horizonte y el dato cae encima de la estepa y la base de un
@@ -82,72 +131,101 @@
    vertical del hero entero (medido con getBoundingClientRect() contra el
    título real de la Tarea 7, ver el reporte de la Tarea 6 §10). Cada
    elemento declara su propia medida, en sus propios `ch`. */
-/* El `min(Xvw, Yvh)` -y no sólo `vw`- es lo que hace que el título y la
-   bajada encojan en una pantalla BAJA, no sólo angosta. Sin el término en
-   `vh`, el alto del bloque de texto depende sólo del ANCHO del viewport
-   (por el `ch`-wrapping), mientras que la posición de RAYOSO -la primera
-   banda, justo bajo el horizonte- depende de la ESCALA del dibujo, que
-   depende del ALTO (`max(ancho/1200, alto/720)`). Son dos sistemas de
-   coordenadas independientes: a una altura de ~800px (1280x800, 1200x800 --
-   notebooks reales y comunes, no un caso de laboratorio) RAYOSO sube en
-   pantalla mientras el texto no cede nada, y los dos chocan -ni el
-   `padding` ni el degradé de acá abajo lo pueden resolver, porque el
-   choque es de texto crudo, medido sin ninguno de los dos puesto (revisión,
-   ronda 4). Con el término en `vh`, a esa altura el título y la bajada
+/* El `min(Xcqw, Ycqh)` -y no sólo `cqw`- es lo que hace que el título y la
+   bajada encojan en una ESCENA baja, no sólo angosta. Sin el término de
+   alto, el bloque de texto depende sólo del ANCHO (por el `ch`-wrapping),
+   mientras que la posición de RAYOSO -la primera banda, justo bajo el
+   horizonte- depende de la ESCALA del dibujo, que depende del ALTO
+   (`max(ancho/1200, alto/720)`). Son dos sistemas de coordenadas
+   independientes: a una altura de ~800px (1280x800, 1200x800 -- notebooks
+   reales y comunes, no un caso de laboratorio) RAYOSO sube en pantalla
+   mientras el texto no cede nada, y los dos chocan -ni el `padding` ni el
+   degradé de acá abajo lo pueden resolver, porque el choque es de texto
+   crudo, medido sin ninguno de los dos puesto (revisión de la Tarea 7,
+   ronda 4). Con el término de alto, a esa altura el título y la bajada
    ceden y el bloque libra a RAYOSO con margen.
 
-   Medido con getBBox()/getBoundingClientRect() real (Emulation.
-   setDeviceMetricsOverride vía CDP, no `--window-size`: ver la nota de la
-   Tarea 7 sobre su piso de 500px) en los cuatro viewports que importan --
-   1920x1080 y 1440x900 porque ya libraban y no podían empeorar, 1280x800 y
-   1200x800 porque chocaban antes de este cambio:
+   `calc(var(--escala) * K)` y no `min(Xcqw, Ycqh)` (revisión de la Tarea 8,
+   ronda 3): el primer intento sólo cambió `vh`/`vw` por `cqh`/`cqw` -contra
+   `.hero__escena`, cuyo alto real ya excluye la banda del buscador- y
+   pareció alcanzar, pero medido de verdad seguía roto en CUATRO de los
+   cinco viewports, y el peor (1920x1080) empeoró: el dato invadía RAYOSO
+   por hasta 81px. La causa no era la unidad, era la geometría de `xMinYMax
+   slice`: `escala = max(ancho/1200, alto/720)`, y en los viewports donde el
+   ANCHO manda (1920x1080, 1440x900, y los dos de 800 de alto, que antes de
+   esta tarea tenían el alto sobrando y ahora no) esa escala NO depende del
+   alto de la escena -así que perder 109-130px de escena por la banda del
+   buscador resta esos mismos px al margen de cielo, sin ningún amortiguador
+   proporcional-. `cqh` sola no puede seguirle el paso a esa pérdida porque
+   mide sólo UN eje; `--escala` sí, porque es la MISMA cuenta que usa el
+   propio SVG para decidir cuánto recorta.
 
-     viewport    título   margen dato↔RAYOSO (antes → después)
-     1920x1080   3 líneas   +62,6px → +64,2px
-     1440x900    3 líneas    +2,7px → +27,8px
-     1280x800    3 líneas   -30,8px → +18,9px  (chocaba, ahora libra)
-     1200x800    3 líneas   -25,7px → +18,9px  (chocaba, ahora libra)
+   Con `--escala` los cinco viewports mejoraron (algunos mucho), y cuatro
+   quedaron con margen positivo con el título y la bajada YA en su piso de
+   legibilidad (1,8rem, establecido en la Tarea 7) -es decir, no hay más
+   margen para ceder ahí-. El quinto (1280x800) no cierra del todo ni así:
+   con el título y la bajada en el piso y el padding/los márgenes del
+   bloque recortados también (ver `.hero__texto`, `.hero__bajada`,
+   `.hero__dato`), quedó en -12px -mejoró de -47px, pero sigue tapando el
+   rótulo de RAYOSO en ese viewport puntual, reportado en el reporte de la
+   Tarea 8 en vez de escondido.
 
-   El título se mantiene en 3 líneas en los cuatro -encoger el tamaño no
+   Medido con getBoundingClientRect() real (Emulation.setDeviceMetricsOverride
+   vía CDP, no `--window-size`: ver la nota de la Tarea 7 sobre su piso de
+   500px) en los cinco viewports de la Tarea 8, con el CSS final de esta
+   ronda:
+
+     viewport    título   margen dato↔RAYOSO
+     1920x1080   3 líneas   +22,4px
+     1440x900    3 líneas   +26,2px
+     1280x900    3 líneas   +71,9px
+     1280x800    3 líneas   -12,1px  (RAYOSO queda tapado -- ver preocupaciones)
+     1200x800    3 líneas   +18,2px
+
+   El título se mantiene en 3 líneas en los cinco -encoger el tamaño no
    cambia cuántos caracteres entran por línea, porque `max-width` está en
-   `ch`, relativo al propio tamaño de fuente-. Los coeficientes (4,1vh
-   título, 2,0vh bajada) son una medida, no una fórmula cerrada: si el copy
-   cambia o se agregan formaciones, hay que volver a medir con este mismo
-   método, no recalcular a mano. */
+   `ch`, relativo al propio tamaño de fuente-, y en los cinco quedó en su
+   piso (1,8rem): con la escena más baja, ninguno de los cinco tiene
+   presupuesto de sobra para un título más grande. Los coeficientes (K=16
+   título, K=9 bajada, en "unidades locales del SVG por unidad de escala")
+   son una medida, no una fórmula cerrada: si el copy cambia, se agregan
+   formaciones, o el alto de `.hero__buscador` cambia, hay que volver a
+   medir con este mismo método, no recalcular a mano. */
 .hero__titulo {
-  font: 600 clamp(1.8rem, min(3.6vw, 4.1vh), 2.8rem)/1.06 var(--serif);
+  font: 600 clamp(1.8rem, calc(var(--escala) * 16), 2.8rem)/1.06 var(--serif);
   max-width: 24ch;
   margin: 0;
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
 .hero__bajada {
-  font: 400 clamp(0.95rem, min(1.6vw, 2.0vh), 1.12rem)/1.5 var(--serif);
+  font: 400 clamp(0.95rem, calc(var(--escala) * 9), 1.12rem)/1.5 var(--serif);
   max-width: 58ch;
   color: var(--apagado);
-  margin: 0.8rem 0 0;
+  margin: 0.45rem 0 0;
 }
 .hero__dato {
   font: 400 0.875rem/1 var(--mono);
   font-variant-numeric: tabular-nums;
   color: var(--cobre);
-  margin: 1.1rem 0 0;
+  margin: 0.55rem 0 0;
 }
 
-/* El buscador cae sobre los estratos profundos, no sobre el cielo: con
-   `flex-direction: column` en `.hero` y sólo dos hijos en flujo (el dibujo
-   es `position: absolute`, sale del flujo), `margin-top: auto` en el
-   buscador consume todo el espacio libre y lo empuja al borde inferior, sin
-   necesidad de una fila de grid dedicada. Lleva fondo de papel propio y un
-   borde superior: sin uno de los dos, el campo competiría visualmente con la
-   trama litológica que tiene detrás (I5). La lista de resultados se
-   posiciona `absolute` contra el ancestro posicionado más cercano -- por
-   `position: relative` acá, ese ancestro es este bloque y no `.hero`
-   (`fixed`), que la pondría en otro lado del documento. */
+/* El buscador vive solo en la segunda fila de la grilla -ya no hace falta
+   empujarlo al fondo con un margen automático (Tarea 8, ruling de la
+   revisión): el orden de las filas ya lo deja ahí, y su alto real (`auto`)
+   es justo lo que la primera fila -la escena- le cede. Lleva fondo
+   de papel propio y un borde superior: sin uno de los dos, el campo
+   competiría visualmente con la trama litológica que tiene detrás (I5). La
+   lista de resultados se posiciona `absolute` contra el ancestro posicionado
+   más cercano -- `position: relative` sigue haciendo falta acá (no es del
+   truco de `margin-top: auto` que se sacó): sin él ese ancestro sería
+   `.hero` (`fixed`), que la pondría en otro lado del documento en vez de
+   abrirse hacia arriba pegada al campo. */
 .hero__buscador {
   position: relative;
   z-index: 1;
-  margin-top: auto;
+  grid-row: 2;
   padding: 1.1rem clamp(20px, 5vw, 72px) 1.4rem;
   background: var(--papel);
   border-top: 1px solid var(--linea);

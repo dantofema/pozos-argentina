@@ -48,6 +48,21 @@ describe('crearHero', () => {
     expect(dato).toContain('07/2026')
   })
 
+  // Revisión de la Tarea 8 (ruling, ronda 3): el dibujo y el texto viven
+  // dentro de `.hero__escena`, que es la fila de la grilla que NO es el
+  // buscador -así el dibujo nunca se extiende detrás de la banda (hallazgo
+  // 2). jsdom no mide layout real (eso se verificó con CDP, ver el reporte),
+  // pero sí puede guardar que la estructura no se pierda en un refactor.
+  it('el dibujo y el texto viven dentro de .hero__escena, no directo en .hero (E2/hallazgo 2)', () => {
+    crearHero(contenedor, { manifiesto: MANIFIESTO })
+    const escena = contenedor.querySelector('.hero__escena')
+    expect(escena).not.toBeNull()
+    expect(escena.querySelector('.hero__dibujo')).not.toBeNull()
+    expect(escena.querySelector('.hero__texto')).not.toBeNull()
+    // El buscador, en cambio, es hermano de la escena: no comparte su fila.
+    expect(escena.querySelector('.hero__buscador')).toBeNull()
+  })
+
   it('dibuja el corte con los conteos del manifiesto', () => {
     crearHero(contenedor, { manifiesto: MANIFIESTO })
     expect(contenedor.querySelector('[data-formacion="VACA MUERTA"]').textContent)

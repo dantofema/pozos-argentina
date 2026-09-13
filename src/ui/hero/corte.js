@@ -216,22 +216,21 @@ export function construirCorte({ formaciones, pozos, periodo }) {
   // La última marca (3.000 m) no llega hasta el borde inferior del todo: le
   // resto MARGEN_LEYENDAS al recorrido para dejarle un canal propio a las dos
   // leyendas que viven pegadas ahí abajo -- "CUENCA NEUQUINA" y "PROFUNDIDAD
-  // (m) · ESQUEMÁTICO" (ver más abajo). El valor no es sólo "lo que ocupan
-  // dos líneas de 11px": `.hero__buscador` (hero.css) es una caja OPACA de
-  // 109px de alto, pegada al borde inferior del viewport con `margin-top:
-  // auto` -- no forma parte de este dibujo, pero le tapa una franja del
-  // borde inferior que este cálculo, hecho sólo en coordenadas del SVG, no
-  // puede ver. Esos 109px de pantalla no son 109 unidades locales: con
-  // `xMinYMax slice`, escala = max(ancho/1200, alto/720), y esa escala varía
-  // por viewport (1,11 a 1200x800/1280x800, hasta 1,6 a 1920x1080), así que
-  // los mismos 109px de pantalla comen MÁS unidades locales cuanto más chica
-  // es la escala. El caso que manda es el de escala más chica -- 1200x800 y
-  // 1280x800, escala 1,11 -- donde 109px + margen de aire se comen ~116
-  // unidades locales. MARGEN_LEYENDAS=150 dejando el bloque a partir de
-  // ALTO-130 le sobrevive con margen en los cinco viewports verificados
-  // (revisión de la Tarea 8, hallazgo 2 -- medido con getBoundingClientRect()
-  // real en Chrome headless, no sólo calculado).
-  const MARGEN_LEYENDAS = 150
+  // (m) · ESQUEMÁTICO" (ver más abajo). 56 y no 40 (el valor de antes de que
+  // la cuenca se mudara acá): son dos líneas de 11px, no una, y la segunda
+  // pide su propio espacio para no pisar a la primera.
+  //
+  // Esto NO tiene en cuenta -ni tiene por qué- la banda opaca del buscador
+  // (`.hero__buscador` en hero.css): en una ronda anterior de esta misma
+  // revisión, ese cálculo vivía hecho a ciegas de la banda, y hubo que subir
+  // este margen a 150 para que el bloque de leyendas sobreviviera tapado por
+  // ella en el viewport de escala más chica. El ruling del coordinador movió
+  // el problema de acá: ahora es `.hero` (grid de tres filas, hero.css) el
+  // que garantiza que el dibujo entero -y por lo tanto esta esquina- termine
+  // arriba de esa banda, así que el 56 de acá no necesita saber que la banda
+  // existe. Volver a subirlo sin que la banda vuelva a superponerse sería
+  // resolver un problema que ya no existe.
+  const MARGEN_LEYENDAS = 56
   const escala = [0, 1000, 2000, 3000].map((m) => {
     const y = HORIZONTE + (m / 3000) * (ALTO - MARGEN_LEYENDAS - HORIZONTE)
     return `
@@ -284,21 +283,21 @@ export function construirCorte({ formaciones, pozos, periodo }) {
          relevo con el resto del grupo, sin reglas de CSS repetidas para
          cada uno.
 
-         Pero "y=ALTO nunca se recorta" es sólo la mitad de la historia: no
-         se recorta por el slice, pero .hero__buscador (hero.css) SÍ lo tapa
-         -es una caja opaca de 109px pegada al borde inferior del viewport, y
-         ese borde es justo donde vive esta esquina-. El primer intento puso
-         el bloque a y=ALTO-30/ALTO-14 (pegado del todo al fondo, como
-         "PROFUNDIDAD..." vivía desde antes de esta tarea) y las dos líneas
-         quedaron TAPADAS por esa caja en los cinco viewports, confirmado con
-         getBoundingClientRect() real -- .hero__buscador empieza en pantalla
-         más arriba de donde terminaba el texto en los cinco casos. De ahí el
-         MARGEN_LEYENDAS=150 de arriba: sube el bloque entero lo suficiente
-         como para que sobreviva incluso al viewport de escala más chica
-         (1200x800/1280x800), donde esos mismos 109px de pantalla comen más
-         unidades locales. -->
-    <text class="corte__cuenca" x="20" y="${ALTO - 130}">CUENCA NEUQUINA</text>
-    <text class="corte__leyenda" x="20" y="${ALTO - 114}">PROFUNDIDAD (m) · ESQUEMÁTICO</text>
+         "y=ALTO nunca se recorta" resultó ser sólo la mitad de la historia
+         la primera vez que se verificó esto: con el bloque pegado del todo
+         al fondo (y=ALTO-30/ALTO-14), .hero__buscador (hero.css) -una caja
+         opaca pegada al borde inferior del viewport- lo tapaba entero en los
+         cinco viewports, confirmado con getBoundingClientRect() real. El
+         parche de esa ronda subió este bloque con un MARGEN_LEYENDAS de 150
+         para esquivarla desde ACÁ. El ruling de la revisión siguiente lo
+         resolvió del otro lado: .hero pasó a ser una grilla de tres filas
+         donde el dibujo (.hero__dibujo, hero.css) abarca sólo las
+         primeras dos, nunca la del buscador, así que esa banda ya no se
+         superpone con NADA de este SVG -y=ALTO ahora sí es, de verdad, el
+         borde que nunca se tapa-. Por eso el bloque vuelve a y=ALTO-30/
+         ALTO-14, el valor original. -->
+    <text class="corte__cuenca" x="20" y="${ALTO - 30}">CUENCA NEUQUINA</text>
+    <text class="corte__leyenda" x="20" y="${ALTO - 14}">PROFUNDIDAD (m) · ESQUEMÁTICO</text>
   </g>
 
   <line class="corte__horizonte" x1="0" y1="${HORIZONTE}" x2="${ANCHO}" y2="${HORIZONTE}" />
