@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { construirCorte, GEOMETRIA } from './corte.js'
 import { COLUMNA_NEUQUINA } from '../../lib/estratigrafia.js'
 import { idDeTrama } from './tramas.js'
@@ -437,6 +438,83 @@ describe('construirCorte', () => {
     for (let i = 1; i < rotulos.length; i++) {
       expect(rotulos[i] - rotulos[i - 1], `rótulo ${i} se pisa con el rótulo ${i - 1}`)
         .toBeGreaterThanOrEqual(20)
+    }
+  })
+})
+
+// --- Revisión final, Critical 1: el texto se imprimía sobre el dibujo en
+// cinco de los siete viewports REALES (viewport = pantalla menos el cromo del
+// navegador, que es lo que las verificaciones anteriores no usaron). El
+// mecanismo: con `xMinYMax slice` la escala es `max(ancho/ANCHO, alto/ALTO)`,
+// y mientras mande el término del ancho el cielo -lo único sobre lo que el
+// texto se puede apoyar- se achica a medida que el viewport se ensancha.
+//
+// Estos tres tests vigilan la reparación desde el lado que jsdom sí puede
+// ver: la relación entre las constantes del dibujo y la hoja de estilos. Las
+// cajas renderizadas se miden con CDP (ver el reporte de la ola final); acá
+// se guarda que nadie deshaga las condiciones que hacen que esa medición dé
+// positivo.
+describe('el cielo no depende del ancho del viewport (revisión final, Critical 1)', () => {
+  // `import.meta.url` va a una variable y no como literal inline en
+  // `new URL()`: ese patrón exacto es el que Vite reconoce como sintaxis de
+  // asset URL y, bajo jsdom, resuelve contra el `location` falso en vez del
+  // archivo real -- `readFileSync` explota con "The URL must be of scheme
+  // file". Mismo cuidado que en `coreografia.test.js`.
+  const base = import.meta.url
+  const hoja = readFileSync(new URL('../../estilos/hero.css', base), 'utf-8')
+
+  it('.hero__dibujo lleva un techo de ancho con el MISMO aspecto que el lienzo', () => {
+    // Sin este techo, un viewport más ancho que ANCHO/ALTO vuelve a hacer
+    // mandar al término del ancho y el cielo se evapora de nuevo. Con él, la
+    // caja del dibujo nunca supera ese aspecto, así que la escala vale
+    // siempre `altoEscena/ALTO` y el cielo siempre `HORIZONTE/ALTO` del alto
+    // de la escena.
+    const techo = /width:\s*min\(100%,\s*calc\(100cqh\s*\*\s*(\d+)\s*\/\s*(\d+)\)\)/.exec(hoja)
+    expect(techo, 'falta el techo de ancho de .hero__dibujo: C1 vuelve').not.toBeNull()
+    expect(Number(techo[1]), 'el techo no usa el ANCHO del lienzo').toBe(GEOMETRIA.ANCHO)
+    expect(Number(techo[2]), 'el techo no usa el ALTO del lienzo').toBe(GEOMETRIA.ALTO)
+  })
+
+  it('--escala es sólo el término del alto: con el techo puesto, el del ancho no puede ganar', () => {
+    const escala = /--escala:\s*([^;]+);/.exec(hoja)
+    expect(escala).not.toBeNull()
+    expect(escala[1], 'volvió el término del ancho a --escala').not.toContain('cqw')
+    expect(escala[1]).toContain(`/ ${GEOMETRIA.ALTO}`)
+  })
+
+  it('los objetos de superficie viven a la derecha de la columna de texto y dentro del recorte', () => {
+    // Los dos límites están medidos con getBoundingClientRect() real por CDP
+    // en los siete viewports de alturas reales:
+    //  - 745: la unidad local más a la derecha que alcanza el bloque de texto
+    //    (peor caso, 1366x641, el de escala más chica).
+    //  - 1427: la unidad local más a la derecha que se ve en TODOS ellos
+    //    (peor caso, 1728x981, el de escena más alta en proporción).
+    // Un balancín asoma 58 unidades sobre el horizonte y la antorcha 126: a
+    // la izquierda de 745 le cruzan las últimas líneas a la bajada por más
+    // cielo que haya, y a la derecha de 1427 no se ven.
+    const LIMITE_TEXTO = 745
+    const LIMITE_RECORTE = 1427
+    const caja = montar()
+    // Semiancho de cada objeto en SUS unidades locales, leído del `d` que lo
+    // dibuja en corte.js: el balancín va de -52 (punta trasera de la viga) a
+    // +66 (borde de la cabeza de caballo); la torre, de -20 a +20; la
+    // antorcha, de -9 a +10 (la llama).
+    const CAJA = {
+      balancin: [-52, 66],
+      corte__torre: [-20, 20],
+      corte__antorcha: [-9, 10],
+    }
+    const objetos = [...caja.querySelectorAll('.balancin, .corte__torre, .corte__antorcha')]
+    expect(objetos.length).toBe(5)
+    for (const o of objetos) {
+      const t = o.getAttribute('transform')
+      const x = Number(/translate\(([-\d.]+)/.exec(t)[1])
+      const escala = Number(/scale\(([-\d.]+)\)/.exec(t)?.[1] ?? 1)
+      const [a, b] = CAJA[o.getAttribute('class').split(' ')[0]]
+      const izquierda = x + a * escala
+      const derecha = x + b * escala
+      expect(izquierda, `${o.getAttribute('class')} invade la columna de texto`).toBeGreaterThanOrEqual(LIMITE_TEXTO)
+      expect(derecha, `${o.getAttribute('class')} cae fuera del recorte visible`).toBeLessThanOrEqual(LIMITE_RECORTE)
     }
   })
 })

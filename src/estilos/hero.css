@@ -60,14 +60,22 @@
   grid-row: 1;
   container-type: size;
   container-name: hero-escena;
-  /* La escala real del corte (corte.js, GEOMETRIA: ANCHO=1200, ALTO=720):
+  /* La escala real del corte (corte.js, GEOMETRIA: ANCHO=1900, ALTO=720):
      cuántos píxeles de pantalla ocupa una unidad local del SVG -- la MISMA
      cuenta que `preserveAspectRatio="xMinYMax slice"` usa para decidir
-     cuánto recorta. RAYOSO y el resto del subsuelo escalan con este número
-     (no con `cqh` solo: ver el título/la bajada más abajo), así que el
-     texto que se le superpone tiene que escalar con el mismo número para
-     seguirle el paso. */
-  --escala: max(calc(100cqw / 1200), calc(100cqh / 720));
+     cuánto recorta. RAYOSO y el resto del subsuelo escalan con este número,
+     así que el texto que se le superpone tiene que escalar con el mismo
+     número para seguirle el paso.
+
+     Era `max(100cqw/1900, 100cqh/720)` -la cuenta completa de `slice`- y
+     ahora es sólo el término del alto (revisión final, Critical 1): con el
+     techo de ancho de `.hero__dibujo` (abajo) el término del ancho no puede
+     ganar nunca, así que `max()` sobraba y, peor, mentía en los viewports
+     donde el techo recorta -devolvía una escala mayor que la que el SVG usa
+     de verdad-. El corolario es lo que arregla C1: el cielo que le queda al
+     texto es `HORIZONTE · --escala` = 260·--escala, y no depende del ancho
+     del viewport en ningún caso. */
+  --escala: calc(100cqh / 720);
 }
 
 /* El dibujo llena `.hero__escena` entera, detrás del texto -- no es una
@@ -85,7 +93,32 @@
    absolute`) taparía el texto en vez de quedar detrás. */
 .hero__dibujo {
   position: absolute;
-  inset: 0;
+  inset: 0 auto 0 0;
+  height: 100%;
+  /* El techo de ancho, y la mitad de la reparación de C1 (la otra mitad es
+     ANCHO=1900 en corte.js). `slice` escala por `max(ancho/ANCHO,
+     alto/ALTO)`: mientras mande el término del ancho, el cielo
+     -`altoEscena − (ALTO−HORIZONTE)·escala`- se achica a medida que el
+     viewport se ensancha, y el texto, que ya está en su piso de
+     legibilidad, no tiene nada que ceder. Medido en los siete viewports
+     reales de la revisión, el texto caía sobre el dibujo en cinco.
+
+     Con el techo, la caja del dibujo nunca supera el aspecto del lienzo
+     (1900/720 = 2,6389:1), así que el término del alto gana SIEMPRE, la
+     escala vale `altoEscena/720` y el cielo vale exactamente el 36,1% del
+     alto de la escena: `HORIZONTE/ALTO`. Deja de depender del ancho, que es
+     lo único que cierra el agujero para cualquier viewport y no sólo para
+     los siete de la tabla.
+
+     Con ANCHO=1900 el techo no llega a recortar en ninguno de los siete
+     (el aspecto de escena más ancho medido es 2,57:1, el de 1366x641), así
+     que la franja de papel a la derecha que costaría este camino vale cero
+     píxeles ahí. Recién aparece más allá de 2,64:1 -ultrawide, o una
+     ventana a media pantalla-, que es justo donde sin él el texto quedaría
+     impreso sobre la roca. `inset: 0 auto 0 0` ancla a la izquierda, por la
+     misma razón que `xMinYMax` (§7): los rótulos viven en el margen
+     izquierdo. */
+  width: min(100%, calc(100cqh * 1900 / 720));
   z-index: 0;
 }
 .corte { display: block; width: 100%; height: 100%; color: var(--tinta); }
@@ -131,124 +164,53 @@
    vertical del hero entero (medido con getBoundingClientRect() contra el
    título real de la Tarea 7, ver el reporte de la Tarea 6 §10). Cada
    elemento declara su propia medida, en sus propios `ch`. */
-/* El `min(Xcqw, Ycqh)` -y no sólo `cqw`- es lo que hace que el título y la
-   bajada encojan en una ESCENA baja, no sólo angosta. Sin el término de
-   alto, el bloque de texto depende sólo del ANCHO (por el `ch`-wrapping),
-   mientras que la posición de RAYOSO -la primera banda, justo bajo el
-   horizonte- depende de la ESCALA del dibujo, que depende del ALTO
-   (`max(ancho/1200, alto/720)`). Son dos sistemas de coordenadas
-   independientes: a una altura de ~800px (1280x800, 1200x800 -- notebooks
-   reales y comunes, no un caso de laboratorio) RAYOSO sube en pantalla
-   mientras el texto no cede nada, y los dos chocan -ni el `padding` ni el
-   degradé de acá abajo lo pueden resolver, porque el choque es de texto
-   crudo, medido sin ninguno de los dos puesto (revisión de la Tarea 7,
-   ronda 4). Con el término de alto, a esa altura el título y la bajada
-   ceden y el bloque libra a RAYOSO con margen.
+/* El tamaño sale de `--escala` (arriba) y no de `vw`/`cqw`: el texto se
+   apoya sobre el cielo, y el cielo mide `260 · --escala` píxeles. Atar el
+   tipo a la misma variable que fija el cielo es lo que hace que los dos se
+   muevan juntos en vez de chocar. Los coeficientes (K=24 título, K=13
+   bajada, en "unidades locales del SVG por unidad de escala") son una
+   medida, no una fórmula cerrada: si el copy cambia, se agregan formaciones,
+   o el alto de `.hero__buscador` cambia, hay que volver a medir con
+   getBoundingClientRect() real, no recalcular a mano.
 
-   `calc(var(--escala) * K)` y no `min(Xcqw, Ycqh)` (revisión de la Tarea 8,
-   ronda 3): el primer intento sólo cambió `vh`/`vw` por `cqh`/`cqw` -contra
-   `.hero__escena`, cuyo alto real ya excluye la banda del buscador- y
-   pareció alcanzar, pero medido de verdad seguía roto en CUATRO de los
-   cinco viewports, y el peor (1920x1080) empeoró: el dato invadía RAYOSO
-   por hasta 81px. La causa no era la unidad, era la geometría de `xMinYMax
-   slice`: `escala = max(ancho/1200, alto/720)`, y en los viewports donde el
-   ANCHO manda (1920x1080, 1440x900, y los dos de 800 de alto, que antes de
-   esta tarea tenían el alto sobrando y ahora no) esa escala NO depende del
-   alto de la escena -así que perder 109-130px de escena por la banda del
-   buscador resta esos mismos px al margen de cielo, sin ningún amortiguador
-   proporcional-. `cqh` sola no puede seguirle el paso a esa pérdida porque
-   mide sólo UN eje; `--escala` sí, porque es la MISMA cuenta que usa el
-   propio SVG para decidir cuánto recorta.
-
-   Con `--escala` los cinco viewports mejoraron (algunos mucho), y cuatro
-   quedaron con margen positivo con el título y la bajada YA en su piso de
-   legibilidad (1,8rem, establecido en la Tarea 7) -es decir, no hay más
-   margen para ceder ahí-. El quinto (1280x800) no cierra del todo ni así:
-   con el título y la bajada en el piso y el padding/los márgenes del
-   bloque recortados también (ver `.hero__texto`, `.hero__bajada`,
-   `.hero__dato`), quedó en -12px -mejoró de -47px, pero sigue tapando el
-   rótulo de RAYOSO en ese viewport puntual, reportado en el reporte de la
-   Tarea 8 en vez de escondido.
+   `max-width: 34ch` en el título, y no 24ch (revisión final, Critical 1).
+   Con 24ch el título salía en TRES líneas en todos los viewports medidos, y
+   las tres líneas más las cuatro de la bajada daban un bloque de 195px
+   contra un cielo de 192px en 1366x641 -el peor de los siete-: el texto no
+   entraba en el cielo ni con el cielo ya arreglado. 34ch lo parte en DOS
+   líneas sin tocar el tamaño de la letra (que ya estaba en su piso de
+   legibilidad, 1,8rem), y el bloque baja a 165px. Es el segundo de los dos
+   cambios que C1 necesitaba: el primero le dio al cielo un alto que no
+   depende del ancho; este hizo que el texto entre en ese alto.
 
    Medido con getBoundingClientRect() real (Emulation.setDeviceMetricsOverride
-   vía CDP, no `--window-size`: ver la nota de la Tarea 7 sobre su piso de
-   500px) en los cinco viewports de la Tarea 8, con el CSS final de esta
-   ronda:
-
-     viewport    título   margen dato↔RAYOSO
-     1920x1080   3 líneas   +22,4px
-     1440x900    3 líneas   +26,2px
-     1280x900    3 líneas   +71,9px
-     1280x800    3 líneas   -12,1px  (RAYOSO queda tapado -- ver preocupaciones)
-     1200x800    3 líneas   +18,2px
-
-   El título se mantiene en 3 líneas en los cinco -encoger el tamaño no
-   cambia cuántos caracteres entran por línea, porque `max-width` está en
-   `ch`, relativo al propio tamaño de fuente-, y en los cinco quedó en su
-   piso (1,8rem): con la escena más baja, ninguno de los cinco tiene
-   presupuesto de sobra para un título más grande. Los coeficientes (K=16
-   título, K=9 bajada, en "unidades locales del SVG por unidad de escala")
-   son una medida, no una fórmula cerrada: si el copy cambia, se agregan
-   formaciones, o el alto de `.hero__buscador` cambia, hay que volver a
-   medir con este mismo método, no recalcular a mano. */
+   vía CDP, no `--window-size`: tiene piso de 500px) en los SIETE viewports
+   de alturas reales de la revisión final -pantalla menos el cromo del
+   navegador, que es el error de método que dejó pasar C1-. Ver el reporte
+   de la ola final para la tabla antes/después. */
 .hero__titulo {
-  font: 600 clamp(1.8rem, calc(var(--escala) * 16), 2.8rem)/1.06 var(--serif);
-  max-width: 24ch;
+  font: 600 clamp(1.8rem, calc(var(--escala) * 24), 2.8rem)/1.06 var(--serif);
+  max-width: 34ch;
   margin: 0;
   letter-spacing: -0.02em;
   text-wrap: balance;
 }
 .hero__bajada {
-  font: 400 clamp(0.95rem, calc(var(--escala) * 9), 1.12rem)/1.5 var(--serif);
+  font: 400 clamp(0.95rem, calc(var(--escala) * 13), 1.12rem)/1.5 var(--serif);
   max-width: 58ch;
   color: var(--apagado);
   margin: 0.45rem 0 0;
 }
-/* Ronda 5 (revisión): las cuatro rondas anteriores midieron el margen entre
-   el texto y RAYOSO, que vive DEBAJO de la línea de horizonte -pero los
-   balancines, la torre y la antorcha sobresalen HACIA ARRIBA, justo donde
-   vive el texto. Se optimizó contra el objeto equivocado: el margen daba
-   positivo mientras "un millón" (58ch de ancho) quedaba cruzado por las
-   patas de un balancín. Medido con getBoundingClientRect() real contra cada
-   `.balancin`/`.corte__torre`/`.corte__antorcha` en los cinco viewports:
-   58ch solapa en 1440x900 (-31,9px), 1280x800 (-61,5px) y 1200x800 (-26,8px,
-   con dos balancines); en 1920x1080 y 1280x900 no hay solape, sobra margen.
-
-   `@container` -contra `.hero__escena`, no el viewport (Ronda 3)- y no un
-   `@media`: lo que importa es el alto de LA ESCENA, no el del viewport
-   entero -son 1280x900 y 1440x900, viewports de 900px de alto ambos, los
-   que se comportan distinto entre sí porque su escala (ver --escala más
-   arriba) sí difiere-. 850px cae entre el alto de escena de 1920x1080
-   (970,8px, nunca colisiona) y el de 1280x900/1440x900 (790,8px, uno de los
-   dos sí): angosta la bajada en los dos por igual -1280x900 no lo
-   necesitaba, pero tampoco le molesta, y sigue sin colisión, verificado-, y
-   también en los dos de 690,8px (1280x800, 1200x800).
-
-   Angostar SOLO no alcanzó -y este es el hallazgo de esta ronda, no sólo el
-   ajuste-: cualquier `max-width` lo bastante angosto para librar el
-   balancín en 1200x800 (el peor caso, el balancín más cerca del margen)
-   agrega una línea entera al bloque (medido: de 4 a 5 líneas entre 52ch y
-   50ch), y esa línea de más le devuelve a RAYOSO el margen negativo que la
-   Ronda 4 había cerrado -de +10,7px a -12,1px en 1280x800, medido-. Probar
-   `padding-left` solo (sin angostar) tampoco alcanzó: mientras el bloque de
-   texto siga siendo MÁS ANCHO que el balancín (lo es, con cualquier ancho
-   razonable), correrlo hacia la izquierda no cambia el solape -el balancín
-   queda contenido adentro del bloque en los dos extremos, así que el
-   solape lo fija el ancho del balancín, no el borde del texto-. Hizo falta
-   la combinación: `max-width: 42ch` (angosta lo suficiente para que el
-   borde derecho del bloque quede antes del balancín, no sólo más chico) +
-   `padding-left: 6px` (recorre el bloque entero a la izquierda, alejándolo
-   más sin agregar ninguna línea) + recuperar el alto que la quinta línea
-   suma en otro lado del mismo bloque (`padding-top: 0`, `line-height: 1.35`
-   en vez de 1.5, `margin-top: 0.2rem` en vez de 0.45rem). Verificado con
-   `getBoundingClientRect()` real contra los cinco obstáculos (los tres
-   balancines, la torre, la antorcha) en los cinco viewports: cero
-   colisiones, y margen contra RAYOSO positivo en los cinco (ver el reporte
-   de la Tarea 8 para la tabla completa). */
-@container hero-escena (max-height: 850px) {
-  .hero__texto { padding-top: 0; padding-left: 6px; }
-  .hero__bajada { max-width: 42ch; line-height: 1.35; margin-top: 0.2rem; }
-}
+/* Acá vivían tres parches -`padding-left: 6px`, `max-width: 42ch` y un
+   `@container hero-escena (max-height: 850px)` que los aplicaba- que
+   existían para esquivar un cielo que se evaporaba con el ancho del
+   viewport: angostaban y corrían el bloque de texto para que librara al
+   primer balancín, que quedaba justo debajo. Con C1 arreglado -el cielo ya
+   no depende del ancho, y los objetos de superficie viven en la mitad
+   derecha del lienzo (corte.js)- no hay nada que esquivar: sacados los tres,
+   medido de nuevo, los márgenes MEJORAN en los siete viewports. Si alguno
+   hiciera falta de nuevo, sería señal de que C1 volvió a romperse, no de que
+   el parche era necesario. */
 
 /* El buscador vive solo en la segunda fila de la grilla -ya no hace falta
    empujarlo al fondo con un margen automático (Tarea 8, ruling de la
@@ -434,16 +396,22 @@
 /* ---------- Acto I: el instrumento se traza ---------- */
 /* Largos fijos y no getTotalLength(): el viewBox es conocido, y así el CSS no
    depende de que el JS mida nada. */
-.hero--entrando .corte__horizonte { stroke-dasharray: 1200; animation: corte-trazar 1100ms cubic-bezier(.2,.7,.3,1) both; }
+/* `--largo` y no un número suelto en el keyframe (minor de la revisión
+   final): `corte-trazar` arrancaba SIEMPRE en `stroke-dashoffset: 1200`
+   mientras la estepa declaraba `stroke-dasharray: 1217`, así que la estepa
+   empezaba con 17 unidades ya trazadas en vez de invisible. Con la variable,
+   cada trazo arranca en su propio largo y no hay dos números que mantener
+   sincronizados a mano. */
+.hero--entrando .corte__horizonte { --largo: 1900; stroke-dasharray: var(--largo); animation: corte-trazar 1100ms cubic-bezier(.2,.7,.3,1) both; }
 /* El spec dice "el marco y la línea de horizonte se trazan de izquierda a
-   derecha" -- la línea de superficie de ese trazo es la estepa. 1217 y no
-   1200: es un `path` ondulado, más largo que la recta del horizonte
-   (`getTotalLength()` mide 1216,41 con el `d` real de `corte.js`; se redondea
-   PARA ARRIBA para no dejar un resto sin trazar). Arranca 150ms después y
+   derecha" -- la línea de superficie de ese trazo es la estepa. 1920 y no
+   1900: es un `path` ondulado, más largo que la recta del horizonte
+   (`getTotalLength()` mide 1914,03 con el `d` real de `corte.js`, medido en
+   Chrome; se redondea PARA ARRIBA para no dejar un resto sin trazar). Arranca 150ms después y
    dura 200ms más que el horizonte (1300ms contra 1100ms): trazadas a la vez
    y a la misma velocidad, las dos leían como una sola línea duplicada: con
    este desfase se despegan y cada una se lee como su propio trazo. */
-.hero--entrando .corte__estepa { stroke-dasharray: 1217; animation: corte-trazar 1300ms cubic-bezier(.2,.7,.3,1) 150ms both; }
+.hero--entrando .corte__estepa { --largo: 1920; stroke-dasharray: var(--largo); animation: corte-trazar 1300ms cubic-bezier(.2,.7,.3,1) 150ms both; }
 .hero--entrando .corte__escala { animation: corte-aparecer 500ms 300ms both; }
 
 /* ---------- Acto II: la roca se deposita, de abajo hacia arriba ---------- */
@@ -540,7 +508,7 @@
   animation: corte-aparecer 240ms reverse both;
 }
 
-@keyframes corte-trazar { from { stroke-dashoffset: 1200 } to { stroke-dashoffset: 0 } }
+@keyframes corte-trazar { from { stroke-dashoffset: var(--largo) } to { stroke-dashoffset: 0 } }
 @keyframes corte-aparecer { from { opacity: 0 } to { opacity: 1 } }
 @keyframes corte-depositar { from { transform: scaleY(0); opacity: 0 } to { transform: scaleY(1); opacity: 1 } }
 @keyframes corte-barrer { 0% { opacity: .35 } 45% { opacity: 1 } 100% { opacity: 1 } }
@@ -584,6 +552,30 @@
    columna angosta el recorte es horizontal y el texto superpuesto compite
    con los rótulos. */
 @media (max-width: 720px) {
+  /* En un teléfono el texto NO cabe en el cielo, y no es cuestión de
+     ajustarlo (revisión final, Critical 1). La cuenta: la escena mide ~460px
+     de alto, el cielo es el 36,1% de eso -166px- y el bloque de texto, con el
+     título y la bajada YA en su piso de legibilidad y envolviendo contra los
+     390px del viewport, mide 216px. No hay reparto posible: el cielo daría a
+     lo sumo para el título.
+
+     El razonamiento del spec para que el dibujo llene el hero entero es
+     aritmético y es de escritorio -"el corte es 1,67:1 y el aspecto de un
+     viewport típico va de 1,60 a 1,78, casi el mismo"-. Un teléfono es 0,59:1:
+     está fuera de ese rango por un factor de tres, y ahí la superposición deja
+     de ser "texto sobre cielo vacío" para ser texto sobre la trama de RAYOSO.
+     Así que en angosto la composición se apila -texto arriba, dibujo abajo,
+     buscador al pie- en vez de superponerse. El dibujo sigue llenando su fila
+     y sigue recortando por `slice`: lo único que cambia es que la fila ya no
+     es la escena entera.
+
+     `grid-row` explícito en los dos: en el DOM el dibujo va primero (es el
+     fondo del caso general), así que sin esto la colocación automática le
+     daría la fila del texto y viceversa. */
+  .hero__escena { display: grid; grid-template-rows: auto 1fr; }
+  .hero__dibujo { position: static; grid-row: 2; width: 100%; height: 100%; min-height: 0; }
+  .hero__texto { grid-row: 1; padding-bottom: 10px; }
+
   /* Se ocultan los secundarios y queda el de la roca madre, que es el foco.
      Preferible un dibujo simplificado y legible a nueve rótulos apretados
      bajo el título. Los conteos siguen en el manifiesto y en el dibujo de

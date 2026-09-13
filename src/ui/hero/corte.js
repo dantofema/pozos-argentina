@@ -3,34 +3,67 @@ import { defsDeTramas, idDeTrama } from './tramas.js'
 import { normalizar } from '../../lib/catalogo.js'
 
 /**
- * La geometría del dibujo. El horizonte está al 36% del alto: el subsuelo se
- * queda con casi dos tercios porque es donde está el dato.
+ * La geometría del dibujo. El horizonte sigue al 36% del alto: el subsuelo se
+ * queda con casi dos tercios porque es donde está el dato (§7).
+ *
+ * ANCHO 1900 y no 1200 (revisión final, Critical 1). El lienzo se ensanchó por
+ * una razón medida, no estética. Con `preserveAspectRatio="xMinYMax slice"` la
+ * escala es `max(ancho/ANCHO, alto/ALTO)` y el cielo que le queda al texto es
+ * `altoEscena − (ALTO−HORIZONTE)·escala`: cuando manda el término del ANCHO
+ * —o sea cuando el aspecto de la escena supera ANCHO/ALTO— el cielo se achica
+ * a medida que el viewport se ensancha, hasta desaparecer. Con ANCHO=1200 ese
+ * umbral era 1,67:1 y el aspecto REAL de la escena (viewport menos la banda
+ * del buscador) va de 1,98 a 2,57 en los siete viewports reales medidos: el
+ * ancho mandaba SIEMPRE, y el texto se imprimía sobre el dibujo en cinco de
+ * los siete. Con ANCHO=1900 el umbral pasa a 2,64:1 y manda el alto en todos,
+ * así que el cielo vale `HORIZONTE/ALTO · altoEscena` —36,1%— y deja de
+ * depender del ancho. `.hero__dibujo` (hero.css) le pone además un techo de
+ * ancho a ese mismo aspecto, para que la invariante valga también más allá de
+ * 2,64:1 (ultrawide, ventanas a media pantalla) sin depender de esta tabla.
  */
-export const GEOMETRIA = { ANCHO: 1200, ALTO: 720, HORIZONTE: 260 }
+export const GEOMETRIA = { ANCHO: 1900, ALTO: 720, HORIZONTE: 260 }
 
 /**
- * Los tres balancines: x, escala y período del cabeceo. El primero vive más
- * lejos del margen que los otros dos (x=400 y no, por ejemplo, 210): el
- * rótulo de Vaca Muerta es el más largo de los nueve —suma "· ROCA
- * MADRE"— y con menos separación su casing de cobre lo atraviesa (I5: es
- * justo el rótulo que tiene que leerse completo). Ver CABEZA_CABLE_X: el
- * casing de este balancín cae en x=400+57=457, después del borde derecho
- * medido del rótulo (~434 con el manifiesto de referencia).
+ * Los tres balancines: x, escala y período del cabeceo.
+ *
+ * Viven en la MITAD DERECHA del lienzo (revisión final, Critical 1). El texto
+ * del hero se apoya sobre el cielo, anclado a la izquierda, y en el viewport
+ * de escala más chica de los medidos (1366x641) su borde derecho llega a la
+ * unidad local ~745. Un balancín asoma 58 unidades por encima del horizonte,
+ * así que cualquiera plantado a la izquierda de esa marca le cruza las
+ * últimas líneas a la bajada por más cielo que haya —es el hallazgo de la
+ * Ronda 5 de la Tarea 8, que se resolvió entonces angostando el texto y ahora
+ * se resuelve donde de verdad vive: en el dibujo—. A la derecha el límite es
+ * el recorte: con `slice` anclado a la izquierda, la unidad local más a la
+ * derecha que se ve en TODOS los viewports medidos es 1427 (1728x981, el de
+ * escena más alta en proporción). Los cinco objetos de superficie entran
+ * entre 775 y 1400.
+ *
+ * Las tres escalas subieron un 30% (1,3 / 1,0 / 0,8 contra 1,0 / 0,78 / 0,62)
+ * al mismo tiempo que el lienzo se ensanchó: con ANCHO=1900 la escala de
+ * pantalla en un viewport dado baja de ~1,6 a ~1,22 unidades por píxel, así
+ * que sin este ajuste los tres balancines se veían un cuarto más chicos que
+ * antes del arreglo. Siguen en tres tamaños distintos, que es lo que da la
+ * profundidad de campo.
  */
 const BALANCINES = [
-  { x: 400, escala: 1.0,  periodo: '4s' },
-  { x: 560, escala: 0.78, periodo: '4.7s' },
-  { x: 890, escala: 0.62, periodo: '5.3s' },
+  { x: 830,  escala: 1.3, periodo: '4s' },
+  { x: 1010, escala: 1.0, periodo: '4.7s' },
+  { x: 1240, escala: 0.8, periodo: '5.3s' },
 ]
 
 /** La torre de perforación (§7.1): quieta, más alta y esbelta que el poste
  * Samson de cualquier balancín. Vive a la derecha del tercer balancín, en su
- * propio hueco, para no competir con ellos. */
-const TORRE_X = 1030
+ * propio hueco, para no competir con ellos. 1380+20 de media caja = 1400, el
+ * último lugar que se ve en los siete viewports medidos (ver BALANCINES). */
+const TORRE_X = 1380
 
 /** La antorcha (§7.1): un mástil aparte, en el hueco entre el segundo y el
- * tercer balancín, lejos de la torre y de los tres balancines. */
-const ANTORCHA_X = 680
+ * tercer balancín, lejos de la torre y de los tres balancines. Es el objeto
+ * más alto de la superficie (126 unidades contra 58 del balancín), así que es
+ * el que peor tolera quedar bajo el texto: otra razón para que viva en la
+ * mitad derecha. */
+const ANTORCHA_X = 1125
 
 /**
  * El punto del borde exterior de la cabeza de caballo del que cuelga el
@@ -101,9 +134,17 @@ function bandas() {
  * segundo trazo, más arriba, que sugiere las mesetas de la meseta patagónica.
  */
 function estepa() {
-  const d = 'M0 253 Q50 230 100 248 Q150 258 200 244 Q260 228 320 250 ' +
-    'Q380 258 440 240 Q500 226 560 248 Q620 258 680 242 Q740 228 800 250 ' +
-    'Q860 258 920 240 Q980 226 1040 248 Q1100 258 1200 245'
+  // Las crestas bajaron de y=226-230 a y=234-240 (revisión final, Critical 1):
+  // el perfil sigue siendo irregular, pero asoma 18 unidades sobre el
+  // horizonte en vez de 34. Es el único objeto de superficie que cruza el
+  // lienzo entero -no se lo puede correr a la derecha como a los balancines-,
+  // así que la única forma de que no le toque el pie a la bajada es que sea
+  // más bajo. 18 unidades son 13px en el viewport de escala más chica.
+  const d = 'M0 253 Q50 240 100 248 Q150 258 200 244 Q260 238 320 250 ' +
+    'Q380 258 440 240 Q500 236 560 248 Q620 258 680 242 Q740 238 800 250 ' +
+    'Q860 258 920 240 Q980 236 1040 248 Q1100 258 1160 242 Q1220 238 1280 250 ' +
+    'Q1340 258 1400 240 Q1460 236 1520 248 Q1580 258 1640 242 Q1700 238 1760 250 ' +
+    'Q1820 258 1900 245'
   return `<path class="corte__estepa" d="${d}" />`
 }
 
