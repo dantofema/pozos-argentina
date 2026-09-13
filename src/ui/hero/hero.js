@@ -104,10 +104,25 @@ export function crearHero(contenedor, { manifiesto }) {
     /** El relevo: el corte se hunde y el hero se saca del DOM. */
     relevar() {
       if (coreografia.estado() === 'ido' || coreografia.estado() === 'saliendo') return
+      // Si el foco vive adentro del hero -y vive ahí siempre que se llegó acá
+      // eligiendo en su buscador, con mouse o con teclado-, sacar el hero del
+      // DOM lo deja en BODY: quien venía navegando con el teclado se queda sin
+      // lugar y tiene que tabular desde el principio del documento (revisión
+      // final, Important 5). Se anota ANTES de la salida, porque después el
+      // elemento que lo tenía ya no existe.
+      const teniaFoco = contenedor.contains(document.activeElement)
       coreografia.salir()
       setTimeout(() => {
         desconectar()
         contenedor.innerHTML = ''
+        // El destino natural es el buscador de la barra: es el mismo control,
+        // ya refleja el ámbito que se acaba de elegir, y es desde donde se
+        // sigue trabajando. `preventScroll` porque el foco no tiene por qué
+        // mover la página, y sólo si el hero lo tenía: un relevo disparado por
+        // otra vía (un popstate, por ejemplo) no debe robarle el foco a nadie.
+        if (teniaFoco) {
+          document.querySelector('.barra .buscador__entrada')?.focus({ preventScroll: true })
+        }
       }, reducido ? 0 : DURACIONES.SALIDA)
     },
   }

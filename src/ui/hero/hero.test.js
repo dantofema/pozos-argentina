@@ -248,4 +248,51 @@ describe('crearHero', () => {
     expect(() => document.dispatchEvent(new Event('visibilitychange'))).not.toThrow()
     expect(() => document.dispatchEvent(new Event('click'))).not.toThrow()
   })
+  // Revisión final, Important 5: tras elegir en el buscador del hero,
+  // `document.activeElement` quedaba en BODY. Quien venía navegando con el
+  // teclado perdía el lugar y tenía que tabular desde el principio del
+  // documento para volver al mismo control que acababa de usar.
+  it('al relevarse le pasa el foco al buscador de la barra (Important 5)', () => {
+    // La barra de la herramienta, que en la página real ya está montada
+    // cuando el hero se releva (el hero sólo se va con un ámbito elegido, y
+    // eso pide el índice, que es lo mismo que habilita este buscador).
+    const barra = document.createElement('div')
+    barra.className = 'barra'
+    barra.innerHTML = '<input class="buscador__entrada" />'
+    document.body.appendChild(barra)
+
+    const hero = crearHero(contenedor, { manifiesto: MANIFIESTO })
+    hero.montarBuscador(FACETAS, () => {})
+
+    const entrada = contenedor.querySelector('.hero__buscador .buscador__entrada')
+    entrada.focus()
+    expect(contenedor.contains(document.activeElement)).toBe(true)
+
+    hero.relevar()
+    vi.advanceTimersByTime(DURACIONES.SALIDA)
+
+    expect(document.activeElement).toBe(barra.querySelector('.buscador__entrada'))
+    barra.remove()
+  })
+
+  it('no le roba el foco a nadie si el hero no lo tenía (Important 5)', () => {
+    const barra = document.createElement('div')
+    barra.className = 'barra'
+    barra.innerHTML = '<input class="buscador__entrada" />'
+    document.body.appendChild(barra)
+    const afuera = document.createElement('input')
+    document.body.appendChild(afuera)
+
+    const hero = crearHero(contenedor, { manifiesto: MANIFIESTO })
+    afuera.focus()
+
+    hero.relevar()
+    vi.advanceTimersByTime(DURACIONES.SALIDA)
+
+    // Un relevo disparado por otra vía -un popstate, por ejemplo- no tiene
+    // por qué mover el foco de donde el usuario lo dejó.
+    expect(document.activeElement).toBe(afuera)
+    barra.remove()
+    afuera.remove()
+  })
 })
