@@ -306,6 +306,10 @@
 .corte__rotulo {
   font: 600 13px var(--rotulo);
   letter-spacing: 0.1em;
+  /* T4: "Cifras siempre con tabular-nums". Estos rótulos llevan el conteo de
+     pozos de su formación, así que la regla los alcanza igual que a la línea
+     de dato o al panel de descarga. */
+  font-variant-numeric: tabular-nums;
   fill: var(--apagado);
   paint-order: stroke;
   stroke: var(--papel);
@@ -328,10 +332,18 @@
   stroke-linejoin: round;
 }
 .corte__marca line { stroke: var(--apagado); stroke-width: 1; }
+/* El único texto del dibujo que no tenía halo (minor de la revisión final):
+   las marcas de profundidad se leen sobre la trama litológica igual que los
+   rótulos de banda, y sin `paint-order: stroke` la trama les pasa por encima
+   de las cifras. Mismo tratamiento que el resto del texto del corte. */
 .corte__marca text {
   font: 400 10px var(--mono);
   font-variant-numeric: tabular-nums;
   fill: var(--apagado);
+  paint-order: stroke;
+  stroke: var(--papel);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 /* El brillo de la roca madre vive invisible salvo durante el Acto III: nace
@@ -682,11 +694,14 @@
      bajo el título. Los conteos siguen en el manifiesto y en el dibujo de
      escritorio: lo que se oculta acá es una capa de enriquecimiento, no el
      dato que el sitio entrega, que es el CSV. */
-  /* .corte__cuenca no necesita entrar en esta lista desde la Tarea 8: vive
-     dentro de .corte__escala (revisión, hallazgo 2), así que ocultar el
-     grupo ya se lo lleva puesto. */
+  /* Se ocultan las marcas de profundidad y su leyenda, NO el grupo entero
+     (minor de la revisión final): desde la Tarea 8 `.corte__cuenca` vive
+     dentro de `.corte__escala`, así que esconder el grupo se llevaba puesto
+     el rótulo de la cuenca y el dibujo quedaba sin decir de qué columna es,
+     contra I6 -que es la regla que existe justamente para que no pase por
+     columna genérica o promedio nacional-. */
   .corte__estrato:not(.corte__estrato--madre) .corte__rotulo,
-  .corte__escala { display: none; }
+  .corte__marca, .corte__leyenda { display: none; }
 
   /* El rótulo de la roca madre sí queda (es el foco), pero completo
      ("VACA MUERTA · ROCA MADRE · 3.547 pozos", arrancando en x=74) no entra
@@ -695,4 +710,20 @@
      reporte de la Tarea 7). Se ocultan el rol y el conteo, partidos en
      `tspan` propios en corte.js, y sobrevive "VACA MUERTA" sola. */
   .corte__rotulo-rol, .corte__rotulo-cifra { display: none; }
+}
+
+/* ---------- Teléfono ---------- */
+/* Los dos rótulos que sobreviven en angosto -la roca madre y la cuenca- se
+   dibujan en unidades locales del SVG, así que su tamaño en pantalla es el
+   local por la escala del dibujo, y en un teléfono esa escala es la mitad que
+   en un laptop: apilada la composición (ver más arriba), al dibujo le toca
+   una fila de ~230px, o sea una escala de ~0,32. A 13 y 11 unidades locales
+   eso da 4 y 3,5px: texto que está pero no se lee.
+   Acá se los sube a 30 y 26 unidades, que a esa escala dan unos 10 y 8,5px.
+   El corte es 500px y no 720px a propósito: entre 500 y 720 el dibujo ya
+   tiene fila suficiente para que el tamaño de base se lea, y el aumento lo
+   dejaría desproporcionado. */
+@media (max-width: 500px) {
+  .corte__estrato--madre .corte__rotulo { font-size: 30px; }
+  .corte__cuenca { font-size: 26px; }
 }

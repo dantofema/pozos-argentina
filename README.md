@@ -12,7 +12,10 @@ dejar el resultado en `public/` para que el sitio lo sirva sin volver a tocar el
 
 Este sitio no es oficial ni representa a la Secretaría de Energía.
 
-- Diseño: [`docs/superpowers/specs/2026-09-10-pozos-argentina-design.md`](docs/superpowers/specs/2026-09-10-pozos-argentina-design.md)
+- Diseño de datos, build y arquitectura de la herramienta:
+  [`docs/superpowers/specs/2026-09-10-pozos-argentina-design.md`](docs/superpowers/specs/2026-09-10-pozos-argentina-design.md)
+- Identidad visual, hero y movimiento (reemplaza la capa visual del anterior):
+  [`docs/superpowers/specs/2026-09-12-identidad-visual-y-hero-design.md`](docs/superpowers/specs/2026-09-12-identidad-visual-y-hero-design.md)
 
 ## Estado
 

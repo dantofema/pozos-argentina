@@ -24,6 +24,14 @@ const PATRONES = ['src/**/*.js', 'src/**/*.css', 'scripts/**/*.mjs', 'index.html
 // en el mensaje de abajo, no se escanea a sí mismo.
 const PROPIO = 'tests/fuente.test.js'
 
+/**
+ * Los archivos versionados que matchean los patrones. `git ls-files` ve el
+ * ÍNDICE, no el directorio de trabajo (minor de la revisión final): un archivo
+ * nuevo que todavía no pasó por `git add` no aparece acá y esta guarda no lo
+ * mira. Es a propósito -lo que se quiere vigilar es lo que se va a commitear-
+ * pero conviene saberlo cuando el test pasa en verde y el editor muestra el
+ * combinante igual: falta agregarlo al índice.
+ */
 function archivosDeFuente() {
   const salida = execFileSync('git', ['ls-files', ...PATRONES], { encoding: 'utf-8' })
   return salida.split('\n').filter(Boolean).filter((archivo) => archivo !== PROPIO)

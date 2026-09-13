@@ -44,6 +44,15 @@ body {
 
 #app { display: contents; }
 
+/* Mientras se espera el manifiesto que habilita el hero, la cabecera y la
+   barra quedan reservadas pero invisibles: el hero las va a tapar enteras, y
+   verlas aparecer y desaparecer en un round trip es un parpadeo, no una
+   transición. `visibility` y no `display`: así el layout se mantiene y el
+   mapa, que se monta debajo (E2), nunca tiene tamaño cero. La clase la pone y
+   la saca `main.js`. */
+.app--esperando-hero .cabecera,
+.app--esperando-hero .barra { visibility: hidden; }
+
 /* ---------- 1. Encabezado ---------- */
 .cabecera { padding: 18px 24px 6px; }
 .cabecera h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }

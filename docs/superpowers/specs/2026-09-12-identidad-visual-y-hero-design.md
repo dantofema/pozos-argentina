@@ -144,10 +144,18 @@ Total 99 kB, dentro del presupuesto de 110 kB (G8).
 
 Escala de tipos, base 16px, razón 1,25:
 
+Corregida por la revisión final: las dos primeras filas decían `5vw` y `2vw`,
+que es lo que esta tabla pedía antes de que existiera `--escala`. El tamaño del
+título y de la bajada no puede depender del ANCHO: el texto se apoya sobre el
+cielo del dibujo, y el cielo mide `HORIZONTE · --escala`, que depende del ALTO
+de la escena. Atados al ancho, los dos sistemas se movían por separado y el
+texto terminaba impreso sobre la roca (ver §7). Los coeficientes son una
+medida con `getBoundingClientRect()` real, no una fórmula cerrada.
+
 | uso | tamaño | familia |
 |---|---|---|
-| H1 del hero | `clamp(2.2rem, 5vw, 3.8rem)` | serif 600 |
-| bajada | `clamp(1rem, 2vw, 1.2rem)` | serif 400 |
+| H1 del hero | `clamp(1.8rem, calc(var(--escala) * 24), 2.8rem)`, medida 34ch | serif 600 |
+| bajada | `clamp(0.95rem, calc(var(--escala) * 13), 1.12rem)`, medida 58ch | serif 400 |
 | H1 de la herramienta | 1,375rem | serif 600 |
 | cuerpo | 1rem | serif 400 |
 | rótulos y etiquetas | 0,6875rem | narrow 600, mayúsculas |
@@ -156,7 +164,7 @@ Escala de tipos, base 16px, razón 1,25:
 
 ## 7. La ilustración: anatomía del corte
 
-Un solo SVG inline, construido en JS a partir del manifiesto. `viewBox="0 0 1200 720"`,
+Un solo SVG inline, construido en JS a partir del manifiesto. `viewBox="0 0 1900 720"`,
 `preserveAspectRatio="xMinYMax slice"`, y **llena el hero entero**, con el texto
 superpuesto sobre el cielo.
 
@@ -167,10 +175,41 @@ pasó a `meet`, que no pierde nada, pero al mirarlo el dibujo quedaba a 733×440
 márgenes vacíos y rótulos de 6 a 8 píxeles: no perdía dato y perdía el hero.
 
 La salida es que el dibujo **llene el hero entero** y el texto se apoye encima, sobre el
-cielo. Es aritmética: el corte es 1,67:1 y el aspecto de un viewport típico va de 1,60 a
-1,78, casi el mismo, así que a pantalla completa el recorte es de 45 unidades de cielo o
-ninguno, y los rótulos se ven a entre 15 y 21 píxeles. Es además la composición aprobada en
-el brainstorming —título, ilustración, buscador— que la primera versión de la hoja desvió.
+cielo. Es además la composición aprobada en el brainstorming —título, ilustración,
+buscador— que la primera versión de la hoja desvió.
+
+**Corregido una tercera vez el 2026-09-13, y esta corrección es la que hace que lo
+anterior sea cierto.** La aritmética que justificaba el lienzo de 1200x720 decía: "el
+corte es 1,67:1 y el aspecto de un viewport típico va de 1,60 a 1,78, casi el mismo, así
+que a pantalla completa el recorte es de 45 unidades de cielo o ninguno". Estaba mal por
+dos motivos, y la revisión final los midió:
+
+1. Lo que importa no es el aspecto del VIEWPORT sino el de la ESCENA —el viewport menos la
+   banda del buscador, que le resta 109px de alto—. Medido en los siete viewports reales,
+   el aspecto de la escena va de **1,98 a 2,57:1**, no de 1,60 a 1,78.
+2. "Un viewport típico" se había calculado con el alto de la PANTALLA. Ningún navegador
+   maximizado tiene esa altura: 1920x1080 de pantalla es 1920x990 de viewport, y
+   1366x768 es 1366x641.
+
+Con el lienzo a 1,67:1 y la escena entre 1,98 y 2,57:1, el término del ancho manda
+SIEMPRE, el cielo vale `altoEscena − 460·(ancho/1200)` y se achica a medida que la
+pantalla se ensancha —a 1366x641 quedaba en 8px— así que el texto quedaba impreso sobre la
+roca en cinco de los siete viewports medidos.
+
+El lienzo pasa a **1900x720 (2,64:1)**, por encima del aspecto de escena más ancho que se
+mide, y `.hero__dibujo` lleva además un techo de ancho a ese mismo aspecto para que la
+invariante valga también más allá de la tabla. Con eso el término del alto manda siempre y
+**el cielo vale `HORIZONTE/ALTO` del alto de la escena —36,1%— en cualquier viewport**. Los
+rótulos se ven a entre 9,6 y 22 píxeles, y los cinco objetos de superficie viven en la
+mitad derecha del lienzo (entre las unidades 775 y 1400), que es la única forma de que no
+le crucen las últimas líneas a la bajada: el texto se ancla a la izquierda y llega hasta la
+unidad 745 en el viewport de escala más chica.
+
+**En angosto (≤720px) la composición se apila**: texto, dibujo y buscador en tres filas, sin
+superposición. La aritmética de arriba es de escritorio; un teléfono es 0,59:1, fuera de
+ese rango por un factor de tres, y ahí el cielo (166px) no alcanza para un bloque de texto
+que ya está en su piso de legibilidad (216px). No hay reparto posible: o el texto se
+superpone a la roca, o la composición se apila.
 
 El anclaje `xMinYMax` tiene dos razones: **abajo**, porque lo prescindible es el cielo y el
 subsuelo tiene que apoyarse sobre el buscador; y **a la izquierda**, porque en pantallas
@@ -266,13 +305,26 @@ medición. Técnica: `stroke-dashoffset`, paint, una sola vez (G3).
 Los estratos entran **Lajas primero y Rayoso último**, porque así se depositó la roca: lo
 viejo abajo, ciento sesenta millones de años antes. Es al revés del wipe obvio, y es la
 verdad. Cada banda entra con su trama y su rótulo deslizándose desde el margen, y su
-conteo real contando hacia arriba. Escalonado, ~150ms entre bandas.
+conteo real contando hacia arriba.
+
+Son **ocho** bandas, no nueve: Vaca Muerta no entra en esta cascada, sale a su propio acto
+y deja su hueco a la vista. Escalonado, **125ms** entre bandas —precisado por la revisión
+final: el "~150ms" de antes, con ocho bandas de 520ms, cerraba en 2,77s e invadía el Acto
+III, que es justamente el acto que tiene que quedarse solo. 125ms = (1400 − 520) / 7 es el
+paso que hace entrar las ocho dentro de su ventana: la última arranca en 2,075s y cierra
+en 2,595s—. Las ocho respetan el orden de abajo hacia arriba sin excepción.
 
 ### Acto III · Vaca Muerta — 2,6 → 3,2s · *el foco*
 
 El tempo se quiebra: todo lo demás queda quieto. La banda llega con su tinta propia, el
 rótulo se compone en la serif y no en la condensada, y un brillo fino la barre a lo largo.
 El rótulo dice **roca madre** (I5).
+
+Precisado por la revisión final: "todo lo demás queda quieto" es una condición sobre el
+Acto II, no un adorno de este. Cuando la roca madre arranca (2,6s) las otras ocho ya
+cerraron (2,595s): ninguna se está moviendo. El brillo es una banda de degradé que cruza el
+lienzo con `transform`, no un pulso de opacidad sobre el relleno —un pulso prende y apaga,
+no barre—.
 
 ### Acto IV · Lo que hizo la gente — 3,2 → 4,4s
 
@@ -288,7 +340,13 @@ Los balancines y la torre suben últimos.
 - Los contrapesos giran **acoplados a la viga**. Es la diferencia entre leer máquina y
   leer temblequeo, y es la razón por la que cada balancín es un `<g>` con hijos propios.
 - La antorcha titila en un ritmo irregular, ajeno a los balancines.
-- Partículas bajando por los laterales: la producción fluyendo.
+- Partículas bajando por los laterales: la producción fluyendo, desde la punta del lateral
+  hacia el casing, que es para donde corre de verdad. La trama vive en una línea propia
+  dentro de un grupo recortado al largo del lateral, y lo que se anima es el
+  desplazamiento del grupo: un paso de trama por ciclo, con `transform` y no con
+  `stroke-dashoffset`, que G3 prohíbe en el reposo (adjudicado en la revisión final: la
+  salvedad que el ledger había anotado se cierra cambiando la técnica, no escribiendo la
+  excepción).
 
 Todo `transform`/`opacity` (G3). Con tres condiciones de apagado, que son lo que permite
 que exista:
@@ -303,6 +361,14 @@ No un fade. **El corte se hunde** —los estratos se van hacia abajo— mientras
 horizonte **sube y se convierte en el borde superior del área del mapa**, y el mapa emerge
 por debajo. El horizonte es la bisagra: el único elemento continuo entre los dos estados.
 ~600ms, `transform` y `opacity`.
+
+Precisado por la revisión final: para que la bisagra exista, el hero **no puede
+desvanecerse entero**. Lo que se apaga es su fondo de papel; los estratos se hunden, el
+texto, la superficie y la banda del buscador se desvanecen, y el horizonte se queda opaco
+hasta el último cuadro. Cuánto sube no se puede escribir en la hoja de estilos —depende de
+dónde cae el horizonte y de dónde arranca el área del mapa, y va de −214px a +35px según el
+viewport—: lo mide la coreografía al arrancar la salida. Y el área del mapa lleva un
+`border-top`, que es aquello en lo que el horizonte se convierte.
 
 ## 9. Textos
 

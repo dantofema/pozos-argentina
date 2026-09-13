@@ -45,6 +45,19 @@ try {
   const pedidoIndice = cargarIndice()
 
   const estadoInicial = leerEstado(location.search)
+
+  // Quien llega sin estado va a ver el hero tapando la pantalla entera, pero
+  // el hero recién se puede montar cuando llega el manifiesto: en ese round
+  // trip la cabecera y la barra de la herramienta se veían aparecer y
+  // desaparecer (minor de la revisión final). Se reservan invisibles desde el
+  // primer cuadro y vuelven al relevar. `leerEstado` es sincrónico, así que
+  // esto se decide antes de esperar nada.
+  //
+  // `visibility` y no `display` (ver base.css): el layout se mantiene, así que
+  // el mapa -que se monta debajo, E2- nunca tiene tamaño cero, que es la forma
+  // clásica de romper Leaflet y justamente lo que E2 existe para evitar.
+  if (estadoInicial.modo === 'vacio') app.classList.add('app--esperando-hero')
+
   const manifiesto = await pedidoManifiesto
 
   const mapa = crearMapa(document.querySelector('#mapa'))
@@ -84,7 +97,10 @@ try {
   async function sincronizar(estado, { empujarHistorial = true } = {}) {
     // El relevo es de una sola vía: el hero es una entrada, no un estado al que
     // se vuelva. "Volver al inicio" y el botón Atrás no lo reponen (E3).
-    if (estado.modo !== 'vacio') hero?.relevar()
+    if (estado.modo !== 'vacio') {
+      hero?.relevar()
+      app.classList.remove('app--esperando-hero')
+    }
 
     // La zona dibujada se queda en el mapa mientras sea el ámbito elegido, y se
     // va apenas el ámbito pasa a ser otra cosa.
@@ -187,6 +203,10 @@ try {
   await aplicar(leerEstado(location.search), { empujarHistorial: false })
 } catch (error) {
   console.error('No se pudo inicializar la aplicación:', error)
+  // Si el manifiesto no llegó, el hero no se monta nunca: la herramienta tiene
+  // que volver a la vista para que el mensaje de abajo se lea en una página
+  // completa y no debajo de una cabecera invisible.
+  app.classList.remove('app--esperando-hero')
   document.querySelector('#pie').textContent =
     'No se pudo cargar el catálogo de pozos. Recargá la página en unos minutos; ' +
     'si el problema sigue, es un problema del sitio, no de tu conexión.'
